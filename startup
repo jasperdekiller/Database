@@ -199,7 +199,7 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.1
+local currentVersion = 0.2
 
 local currentOffset = 1
 local selectedRow = nil
@@ -957,8 +957,11 @@ userP = nil
             term.write("New Password: ")                	
           	term.setBackgroundColor(colors.lightGray)
           	password = read("*")
+
+          	hashedPass = sha256(password)
+
           	logMsg("Changing account '"..user.."'..", messageLevel.Warning)
-			      Acc_pass[selectedRow] = {user,password,userID}
+			      Acc_pass[selectedRow] = {user,hashedPass,userID}
             logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
             local f = fs.open("Users", "w")
             f.write(textutils.serialize(Acc_pass))
