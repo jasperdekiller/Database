@@ -692,7 +692,7 @@ if checkForModem() then
    term.setBackgroundColor(colors.gray)
    write("                ")
 
-   Running_Status = "Running"
+   Running_Status = "Running v"..currentVersion
 
    term.setCursorPos(2,2)
    term.setBackgroundColor(colors.gray)
