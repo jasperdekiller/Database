@@ -522,6 +522,7 @@ if offline == 0 then
    m.command == "@AddUser" then
    addUser(m.userName, m.userPass)
    rednet.send(id, "Success.")
+   printUsers(currentOffset)
   end
  end
 end
