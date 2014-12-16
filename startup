@@ -199,7 +199,7 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 1.0
+local currentVersion = 0.1
 
 local currentOffset = 1
 local selectedRow = nil
@@ -522,7 +522,7 @@ function Updater()
   file.write(handle)
   f.close()
   local downloadU = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/startup")
-  local handleU = download.readAll()
+  local handleU = downloadU.readAll()
   downloadU.close()
   file = fs.open("startup","w")
   file.write(handleU)
@@ -1243,4 +1243,3 @@ while true do
     	 parallel.waitForAny(receiveMessages, spp)
  end
 end
-
