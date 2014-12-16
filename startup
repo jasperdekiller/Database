@@ -484,9 +484,8 @@ function addUser(name, password)
  end
   current_acc_number = current_acc_number + 1
 
-  hPassword = sha256(password)
 
-  Acc_pass[#Acc_pass+1] = {name, hPassword, current_acc_number}
+  Acc_pass[#Acc_pass+1] = {name, sha256(password), current_acc_number}
   file = fs.open("CurrentID", "w")
   file.write(tostring(current_acc_number))
   file.close()
