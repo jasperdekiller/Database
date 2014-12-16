@@ -498,12 +498,7 @@ function receiveMessages()
  while true do
   id, m = rednet.receive()
 if offline == 0 then
-  if tostring(m) == "@AddUser" then
-  	username = rednet.receive(2)
-  	password = rednet.receive(2)
-  	addUser(username, password)
-  	rednet.send(id, "Success.")
-  elseif tostring(m) == "@CLOSEALLSERVERS" then
+  if tostring(m) == "@CLOSEALLSERVERS" then
    fs.delete("startup")
    fs.delete("CurrentID")
    fs.delete("Users")
@@ -523,6 +518,10 @@ if offline == 0 then
   	else
   	 rednet.send(id,"LoginFailed")
   	end
+  elseif type(m) == "table" and m.command and m.userName and m.userPass and
+   m.command == "@AddUser" then
+   addUser(m.userName, m.userPass)
+   rednet.send(id, "Success.")
   end
  end
 end
