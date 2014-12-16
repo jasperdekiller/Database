@@ -199,7 +199,7 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.6
+local currentVersion = 0.7
 
 local currentOffset = 1
 local selectedRow = nil
