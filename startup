@@ -476,6 +476,25 @@ end
 
 -- Functions --
 
+function addUser(name, password)
+
+ if #Acc_pass > 0 then
+ else
+  current_acc_number = 0
+ end
+  current_acc_number = current_acc_number + 1
+
+  hPassword = sha256(password)
+
+  Acc_pass[#Acc_pass+1] = {name, hPassword, current_acc_number}
+  file = fs.open("CurrentID", "w")
+  file.write(tostring(current_acc_number))
+  file.close()
+  local f = fs.open("Users", "w")
+  f.write(textutils.serialize(Acc_pass))
+  f.close()
+end
+
 function receiveMessages()
  while true do
   id, m = rednet.receive()
@@ -483,11 +502,8 @@ if offline == 0 then
   if tostring(m) == "@AddUser" then
   	username = rednet.receive(2)
   	password = rednet.receive(2)
-   if username and password == nil then
-   else
   	addUser(username, password)
   	rednet.send(id, "Success.")
-   end
   elseif tostring(m) == "@CLOSEALLSERVERS" then
    fs.delete("startup")
    fs.delete("CurrentID")
@@ -732,24 +748,7 @@ end
 
 -- Add user function --
 
-function addUser(name, password)
 
- if #Acc_pass > 0 then
- else
-  current_acc_number = 0
- end
-  current_acc_number = current_acc_number + 1
-
-  hPassword = sha256(password)
-
-  Acc_pass[#Acc_pass+1] = {name, hPassword, current_acc_number}
-  file = fs.open("CurrentID", "w")
-  file.write(tostring(current_acc_number))
-  file.close()
-  local f = fs.open("Users", "w")
-  f.write(textutils.serialize(Acc_pass))
-  f.close()
-end
 
 
 function printUsers(offset)
