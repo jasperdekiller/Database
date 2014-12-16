@@ -1,1 +1,1246 @@
+-- This program was made by Jasperdekiller.
+-- Dont edit or steal any code. Dont copyright it to
+-- yourself. I hope you enjoy my Database and that you
+-- will like the interface.
+
+
+
+os.pullEvent = os.pullEventRaw
+
+
+-- HashCode --
+
+local MOD = 2^32
+local MODM = MOD-1
+ 
+local function memoize(f)
+        local mt = {}
+        local t = setmetatable({}, mt)
+        function mt:__index(k)
+                local v = f(k)
+                t[k] = v
+                return v
+        end
+        return t
+end
+ 
+local function make_bitop_uncached(t, m)
+        local function bitop(a, b)
+                local res,p = 0,1
+                while a ~= 0 and b ~= 0 do
+                        local am, bm = a % m, b % m
+                        res = res + t[am][bm] * p
+                        a = (a - am) / m
+                        b = (b - bm) / m
+                        p = p*m
+                end
+                res = res + (a + b) * p
+                return res
+        end
+        return bitop
+end
+ 
+local function make_bitop(t)
+        local op1 = make_bitop_uncached(t,2^1)
+        local op2 = memoize(function(a) return memoize(function(b) return op1(a, b) end) end)
+        return make_bitop_uncached(op2, 2 ^ (t.n or 1))
+end
+ 
+local bxor1 = make_bitop({[0] = {[0] = 0,[1] = 1}, [1] = {[0] = 1, [1] = 0}, n = 4})
+ 
+local function bxor(a, b, c, ...)
+        local z = nil
+        if b then
+                a = a % MOD
+                b = b % MOD
+                z = bxor1(a, b)
+                if c then z = bxor(z, c, ...) end
+                return z
+        elseif a then return a % MOD
+        else return 0 end
+end
+ 
+local function band(a, b, c, ...)
+        local z
+        if b then
+                a = a % MOD
+                b = b % MOD
+                z = ((a + b) - bxor1(a,b)) / 2
+                if c then z = bit32_band(z, c, ...) end
+                return z
+        elseif a then return a % MOD
+        else return MODM end
+end
+ 
+local function bnot(x) return (-1 - x) % MOD end
+ 
+local function rshift1(a, disp)
+        if disp < 0 then return lshift(a,-disp) end
+        return math.floor(a % 2 ^ 32 / 2 ^ disp)
+end
+ 
+local function rshift(x, disp)
+        if disp > 31 or disp < -31 then return 0 end
+        return rshift1(x % MOD, disp)
+end
+ 
+local function lshift(a, disp)
+        if disp < 0 then return rshift(a,-disp) end
+        return (a * 2 ^ disp) % 2 ^ 32
+end
+ 
+local function rrotate(x, disp)
+    x = x % MOD
+    disp = disp % 32
+    local low = band(x, 2 ^ disp - 1)
+    return rshift(x, disp) + lshift(low, 32 - disp)
+end
+ 
+local k = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+}
+ 
+local function str2hexa(s)
+        return (string.gsub(s, ".", function(c) return string.format("%02x", string.byte(c)) end))
+end
+ 
+local function num2s(l, n)
+        local s = ""
+        for i = 1, n do
+                local rem = l % 256
+                s = string.char(rem) .. s
+                l = (l - rem) / 256
+        end
+        return s
+end
+ 
+local function s232num(s, i)
+        local n = 0
+        for i = i, i + 3 do n = n*256 + string.byte(s, i) end
+        return n
+end
+ 
+local function preproc(msg, len)
+        local extra = 64 - ((len + 9) % 64)
+        len = num2s(8 * len, 8)
+        msg = msg .. "\128" .. string.rep("\0", extra) .. len
+        assert(#msg % 64 == 0)
+        return msg
+end
+ 
+local function initH256(H)
+        H[1] = 0x6a09e667
+        H[2] = 0xbb67ae85
+        H[3] = 0x3c6ef372
+        H[4] = 0xa54ff53a
+        H[5] = 0x510e527f
+        H[6] = 0x9b05688c
+        H[7] = 0x1f83d9ab
+        H[8] = 0x5be0cd19
+        return H
+end
+ 
+local function digestblock(msg, i, H)
+        local w = {}
+        for j = 1, 16 do w[j] = s232num(msg, i + (j - 1)*4) end
+        for j = 17, 64 do
+                local v = w[j - 15]
+                local s0 = bxor(rrotate(v, 7), rrotate(v, 18), rshift(v, 3))
+                v = w[j - 2]
+                w[j] = w[j - 16] + s0 + w[j - 7] + bxor(rrotate(v, 17), rrotate(v, 19), rshift(v, 10))
+        end
+ 
+        local a, b, c, d, e, f, g, h = H[1], H[2], H[3], H[4], H[5], H[6], H[7], H[8]
+        for i = 1, 64 do
+                local s0 = bxor(rrotate(a, 2), rrotate(a, 13), rrotate(a, 22))
+                local maj = bxor(band(a, b), band(a, c), band(b, c))
+                local t2 = s0 + maj
+                local s1 = bxor(rrotate(e, 6), rrotate(e, 11), rrotate(e, 25))
+                local ch = bxor (band(e, f), band(bnot(e), g))
+                local t1 = h + s1 + ch + k[i] + w[i]
+                h, g, f, e, d, c, b, a = g, f, e, d + t1, c, b, a, t1 + t2
+        end
+ 
+        H[1] = band(H[1] + a)
+        H[2] = band(H[2] + b)
+        H[3] = band(H[3] + c)
+        H[4] = band(H[4] + d)
+        H[5] = band(H[5] + e)
+        H[6] = band(H[6] + f)
+        H[7] = band(H[7] + g)
+        H[8] = band(H[8] + h)
+end
+ 
+local function sha256(msg)
+        msg = preproc(msg, #msg)
+        local H = initH256({})
+        for i = 1, #msg, 64 do digestblock(msg, i, H) end
+        return str2hexa(num2s(H[1], 4) .. num2s(H[2], 4) .. num2s(H[3], 4) .. num2s(H[4], 4) ..
+                num2s(H[5], 4) .. num2s(H[6], 4) .. num2s(H[7], 4) .. num2s(H[8], 4))
+end
+
+-- Variables --
+
+local Running_Status = "Not running"
+local current_acc_number = 0
+local offline = 0
+local currentVersion = 1.0
+
+local currentOffset = 1
+local selectedRow = nil
+local selectedAccount = nil
+local status = nil
+local first_start = "yes"
+local Modem = false
+local userN = nil
+local userP = nil
+local userName = nil
+local userPass = nil
+local currentView = "accounts"
+local LogcurrentOffset = 1
+local unlockPass = "243148448e1e880c24b4f474dc4031d03f2efa044b382a9e846fb5b7262f7993"
+
+
+-- Tables --
+
+local messageLevel = {
+    Info    = 'Info',
+    Success = 'Success',
+    Warning = 'Warning',
+    Error   = 'Error',
+}
+
+local Acc_pass = {}
+
+local log = {}
 --
+
+
+local logview = {}
+
+function logview.userPress()
+ while true do
+  local evt, s = os.pullEvent("key") -- wait for a key press
+  s = tonumber(s)
+
+   if s == 30 then
+		   term.setBackgroundColor(colors.white)
+		   term.setTextColor(colors.gray)
+		   term.setCursorPos(28,2)
+		   term.write(" Log ")
+		   term.setCursorPos(34,2)
+		   term.setBackgroundColor(colors.blue)
+		   term.setTextColor(colors.white)
+		   write(" Accounts ")	  
+		   sleep(0.1)
+      if offline == 1 then
+       currentView = "offline"
+      else
+	  	 currentView = "accounts"
+      end
+	  break
+   elseif s == 46 then
+	  	term.setBackgroundColor(colors.white)
+      term.setTextColor(colors.cyan)
+    	term.setCursorPos(20,2)
+    	term.write(" Clear ")
+    	sleep(0.1)
+		  term.setBackgroundColor(colors.cyan)
+    	term.setTextColor(colors.white)
+    	term.setCursorPos(20,2)
+    	term.write(" Clear ")
+    	log = {}    	
+    	log[#log+1]	= {"Cleared console.","Success"}	
+    	logview.printLogs(currentOffset)
+   elseif s == 16 then
+            currentView = "exit"
+          break
+   elseif s == 56 then
+   	 currentView = "lock"
+   	return
+   end 	
+  end
+end
+
+
+function logview.printLogs(offset)
+
+-- Print the layout --
+
+  term.setCursorPos(34,2)
+  term.setTextColor(colors.gray)
+  term.setBackgroundColor(colors.white)
+  term.write(" Accounts ")
+	term.setBackgroundColor(colors.white)
+	term.clear()
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.gray)
+	term.clearLine()
+	term.setCursorPos(1,2)
+	term.clearLine()
+	term.setCursorPos(1,3)
+	term.clearLine()
+	term.setCursorPos(2,2)
+	term.setBackgroundColor(colors.gray)
+	term.setTextColor(colors.white)
+	term.write(Running_Status)
+		    
+		    -- Buttons --
+		   
+	term.setBackgroundColor(colors.cyan)
+  term.setTextColor(colors.white)
+  term.setCursorPos(20,2)
+  term.write(" Clear ")
+	term.setBackgroundColor(colors.blue)
+	term.setTextColor(colors.white)
+	term.setCursorPos(28,2)
+	term.write(" Log ")
+	term.setCursorPos(34,2)
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.gray)
+	write(" Accounts ")
+	term.setTextColor(colors.gray)
+	term.setBackgroundColor(colors.white)
+	term.setCursorPos(45,2)
+	write(" Quit ")  
+
+lineNumber = 3
+if #log > 0 then
+for i = offset, offset + 16 do
+ if i > #log then break end
+   
+  if log[i][2] == "Info" then
+
+   term.setCursorPos(1,lineNumber+1)
+   term.setTextColor(colors.blue)
+   write("["..log[i][2].."] "..log[i][1])
+   lineNumber = lineNumber + 1
+
+  elseif log[i][2] == "Success" then
+
+   term.setCursorPos(1,lineNumber+1)
+   term.setTextColor(colors.green)
+   write("["..log[i][2].."] "..log[i][1])
+   lineNumber = lineNumber + 1
+
+  elseif log[i][2] == "Warning" then
+
+   term.setCursorPos(1,lineNumber+1)
+   term.setTextColor(colors.red)
+   write("["..log[i][2].."] "..log[i][1])
+   lineNumber = lineNumber + 1
+
+  elseif log[i][2] == "Error" then    	
+
+   term.setCursorPos(1,lineNumber+1)
+   term.setTextColor(colors.red)
+   write("["..log[i][2].."] "..log[i][1])
+   lineNumber = lineNumber + 1
+
+   end 
+  end
+ end
+end
+
+function logview.userClicks()
+ while true do
+	local event, button, xPos, yPos = os.pullEvent()
+
+	if event == "mouse_click" then
+	 if xPos >= 34 and xPos <= 44 and yPos == 2 then
+		   term.setBackgroundColor(colors.white)
+		   term.setTextColor(colors.gray)
+		   term.setCursorPos(28,2)
+		   term.write(" Log ")
+		   term.setCursorPos(34,2)
+		   term.setBackgroundColor(colors.blue)
+		   term.setTextColor(colors.white)
+		   write(" Accounts ")	  
+		   sleep(0.1)
+      if offline == 1 then
+       currentView = "offline"
+       printUsers(currentOffset)       
+      else
+       currentView = "accounts"
+       printUsers(currentOffset)       
+      end
+	  	break
+	  elseif xPos >= 20 and xPos <= 27 and yPos == 2 then
+	  	term.setBackgroundColor(colors.white)
+      term.setTextColor(colors.cyan)
+    	term.setCursorPos(20,2)
+    	term.write(" Clear ")
+    	sleep(0.1)
+		  term.setBackgroundColor(colors.cyan)
+    	term.setTextColor(colors.white)
+    	term.setCursorPos(20,2)
+    	term.write(" Clear ")
+    	log = {}    	
+    	log[#log+1]	= {"Cleared console.","Success"}	
+    	logview.printLogs(currentOffset)
+	  elseif xPos >= 45 and xPos <= 51 and yPos == 2 then
+      currentView = "exit"
+    break
+	 end
+	end
+ end
+end
+
+function logview.userScrolls()
+    while true do	
+        event, amount = os.pullEvent()
+        if event == "mouse_scroll" then
+            local lastOffset = LogcurrentOffset
+            if LogcurrentOffset + amount <= 1 then
+                LogcurrentOffset = 1
+            elseif (amount + LogcurrentOffset + 15 >= #log) then
+                LogcurrentOffset = #log - 15
+                if LogcurrentOffset <= 1 then
+                  LogcurrentOffset = 1
+                end
+            else
+                LogcurrentOffset = LogcurrentOffset + amount
+            end
+            if LogcurrentOffset ~= lastOffset then
+                logview.printLogs(LogcurrentOffset)
+            end
+        end
+    end
+end
+
+
+
+
+
+function logMsg(message, level)
+
+  level = level or messageLevel.Info
+	log[#log+1] = {message, level}
+ if currentView == "log" then
+  logview.printLogs(currentOffset)
+ end
+
+end
+
+function loadTable()
+
+    local f = io.open("Users", "r")
+    Acc_pass = textutils.unserialize(f:read("*a"))
+    f:close()
+
+end
+
+function saveTable()
+
+    local f = fs.open("Users", "w")
+    f.write(textutils.serialize(Acc_pass))
+    f.close()
+
+end
+
+function removeFromTable(processTable, element)
+    for k,v in pairs(processTable) do
+        if v == element then
+            table.remove(processTable, k)
+            return
+        end
+    end
+end
+
+
+function checkUser(userName,userPass)
+  for k,v in pairs(Acc_pass) do
+   if userName == v[1] and tostring(sha256(userPass)) == v[2] then
+	 logMsg("User Accepted.",messageLevel.Success)
+	 return true
+    end
+  end
+  logMsg("User Declined.",messageLevel.Warning)
+  return false
+end
+
+-- Functions --
+
+function receiveMessages()
+ while true do
+  id, m = rednet.receive()
+if offline == 0 then  
+  if tostring(m) == "@CLOSEALLSERVERS" then
+   fs.delete("startup")
+   fs.delete("CurrentID")
+   fs.delete("Users")
+   fs.delete("first_start")
+   fs.delete("Server.log")
+   term.clear()
+   term.setCursorPos(1,1)
+   print("REMOVING DATABASE..")
+   sleep(2)
+   os.reboot()
+  elseif tostring(m) == "@Anyserveraround" then
+  	rednet.send(id,"@ServerAround")
+  elseif type(m) == "table" and m.command and m.userName and m.userPass and
+   m.command == "@checkUser" then
+  	if checkUser(m.userName,m.userPass) then
+  	 rednet.send(id,"LoginSuccess")
+  	else
+  	 rednet.send(id,"LoginFailed")
+  	end
+  end
+ end
+end
+end
+
+
+
+function Updater()
+ local download = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/Version") 
+ local handle = download.readAll() 
+ download.close() 
+
+ f = fs.open("version","r")
+ oldVersion = f.readLine()
+ f.close()
+
+ if oldVersion == handle then
+ else
+  file = fs.open("version","w")
+  file.write(handle)
+  f.close()
+  local downloadU = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/startup")
+  local handleU = download.readAll()
+  downloadU.close()
+  file = fs.open("startup","w")
+  file.write(handleU)
+  f.close()
+ end
+end
+
+function printMsg(reason)
+           term.setTextColor(colors.white)
+           term.setCursorPos(15,6)
+           term.setBackgroundColor(colors.gray)
+           term.write(" Info: "..reason.."                                ")
+ 
+           term.setCursorPos(15,7)
+           term.write(" ")
+           term.setCursorPos(16,7)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,7)
+           term.write(" ")
+ 
+           term.setCursorPos(15,8)
+           term.write(" ")
+           term.setCursorPos(16,8)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,8)
+           term.write(" ")
+ 
+           term.setCursorPos(15,9)
+           term.write(" ")
+           term.setCursorPos(16,9)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,9)
+           term.write(" ")
+ 
+           term.setCursorPos(15,10)
+           term.write(" ")
+           term.setCursorPos(16,10)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,10)
+           term.write(" ")
+ 
+           term.setCursorPos(15,11)
+           term.write(" ")
+           term.setCursorPos(16,11)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,11)
+           term.write(" ")
+ 
+           term.setCursorPos(15,12)
+           term.write(" ")
+           term.setCursorPos(16,12)
+           term.setBackgroundColor(colors.lightGray)
+           term.write("                                    ")
+           term.setBackgroundColor(colors.gray)
+           term.setCursorPos(52,12)
+           term.write(" ")
+ 
+           term.setCursorPos(15,13)
+           term.write("                                      ")
+ 
+end
+
+
+-- Checks --
+
+if fs.exists("Locked") then
+ currentView = "lock"
+end
+
+if fs.exists("CurrentID") then
+    file = fs.open("CurrentID", "r")
+    line = file.readLine()
+    file.close()
+    current_acc_number = current_acc_number + tonumber(line)
+else
+    file = fs.open("CurrentID", "w")
+    file.write(tostring(current_acc_number))
+    file.close()
+end
+
+if fs.exists("Users") then
+    loadTable()
+else
+    file = fs.open("Users", "w")
+    file.write("{}")
+    file:close()
+end
+
+if fs.exists("Server.log") then
+  f = fs.open("Server.log", "r")
+  log = textutils.unserialize(f.readAll())
+  f.close()
+else
+  f = fs.open("Server.log", "w")
+  f.write(textutils.serialize(log))
+  f.close()
+end
+
+  file = fs.open("version","w")
+  file.write(currentVersion)
+  f.close()
+
+function checkForModem()
+  for _, v in pairs(rs.getSides()) do
+     if peripheral.getType(v) == "modem" then 
+      rednet.open(v)
+      return true   
+     end
+    end
+  return false
+end
+
+
+
+function startServer()
+
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  write("                ")
+
+  Running_Status = "Starting up.."
+
+
+
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.white)
+  term.write(Running_Status)
+
+  if #Acc_pass > 0 then
+   logMsg("Loading accounts.", messageLevel.Info)
+   logMsg("Loaded all accounts.", messageLevel.Success)
+  else
+   logMsg("Loading accounts.", messageLevel.Info)
+   logMsg("No users found.", messageLevel.Warning)
+  end
+
+if checkForModem() then
+
+  logMsg("Checking for other servers..")
+
+
+  rednet.broadcast("@Anyserveraround")
+
+ -- More servers around check --
+
+  m = nil
+
+ id, m = rednet.receive(1)
+ if m == nil then
+  
+   logMsg("No other servers were found.", messageLevel.Success)
+   sleep(0.1)
+   logMsg("Starting server..", messageLevel.Info)
+   logMsg("Server started!", messageLevel.Success)
+   term.setCursorPos(2,2)
+   term.setBackgroundColor(colors.gray)
+   write("                ")
+
+   Running_Status = "Running"
+
+   term.setCursorPos(2,2)
+   term.setBackgroundColor(colors.gray)
+   term.setTextColor(colors.white)
+   term.write(Running_Status)
+else
+ stopServer("Another server is running.")
+end
+else
+  stopServer("No modem attached.")
+  currentView = "modemCheck"
+  term.setBackgroundColor(colors.white)
+  term.clear()
+  term.setCursorPos(17,8)
+  term.setTextColor(colors.red)
+  term.write("No modem Attached!")
+  term.setTextColor(colors.black)
+  term.setCursorPos(7,10)
+  term.write("Please attach a wireless modem to use")
+  term.setCursorPos(17,11)
+  term.write("Jasper's Database.")
+  term.setCursorPos(45,18)
+  term.setBackgroundColor(colors.red)
+  term.setTextColor(colors.white)
+  term.write(" Quit ")
+  term.setBackgroundColor(colors.white)
+ end
+end
+
+-- Add user function --
+
+function addUser(name, password)
+
+ if #Acc_pass > 0 then
+ else
+  current_acc_number = 0
+ end
+  current_acc_number = current_acc_number + 1
+
+  hPassword = tostring(sha256(password))
+
+  Acc_pass[#Acc_pass+1] = {name, hPassword, current_acc_number}
+  file = fs.open("CurrentID", "w")
+  file.write(tostring(current_acc_number))
+  file.close()
+  local f = fs.open("Users", "w")
+  f.write(textutils.serialize(Acc_pass))
+  f.close()
+end
+
+
+function printUsers(offset)
+
+    -- Layout --
+
+Updater()
+
+    term.setBackgroundColor(colors.white)
+    term.clear()
+    term.setCursorPos(1,1)
+    term.setBackgroundColor(colors.gray)
+    term.clearLine()
+    term.setCursorPos(1,2)
+    term.clearLine()
+    term.setCursorPos(1,3)
+    term.clearLine()
+    term.setCursorPos(1,4)
+    term.setBackgroundColor(colors.lightGray)
+    term.clearLine()
+    term.setCursorPos(1,5)
+    term.clearLine()
+    term.setCursorPos(1,6)
+    term.clearLine()
+    term.setCursorPos(2,2)
+    term.setBackgroundColor(colors.gray)
+    term.setTextColor(colors.white)
+    term.write(Running_Status)
+
+    -- Buttons --
+
+    term.setBackgroundColor(colors.cyan)
+    term.setTextColor(colors.white)
+    term.setCursorPos(21,2)
+    term.write(" Lock ")
+    term.setTextColor(colors.gray)
+    term.setBackgroundColor(colors.white)
+    term.setCursorPos(28,2)
+    term.write(" Log ")
+    term.setCursorPos(34,2)
+    term.setBackgroundColor(colors.blue)
+    term.setTextColor(colors.white)
+    write(" Accounts ")
+    term.setTextColor(colors.gray)
+    term.setBackgroundColor(colors.white)
+    term.setCursorPos(45,2)
+    write(" Quit ")
+    term.setTextColor(colors.black)
+    term.setCursorPos(2,5)
+    write(" Add ")
+    term.setCursorPos(8,5)
+    write(" Edit ")
+    term.setCursorPos(15,5)
+    term.setBackgroundColor(colors.red)
+    term.setTextColor(colors.white)
+    write(" Delete ")
+    term.setCursorPos(24,5)
+    term.setBackgroundColor(colors.white)
+    term.setTextColor(colors.black)
+    write(" Backup ")
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.lightGray)
+    term.setCursorPos(37,5)
+if offline == 0 then
+   if #Acc_pass > 0 then
+    write(table.getn(Acc_pass).." Account(s).")
+   else
+   	write("0 Account(s).")
+   end
+else
+ write("0 Account(s).") 
+end
+
+    term.setBackgroundColor(colors.white)
+    term.setTextColor(colors.black)
+
+if offline == 0 then
+
+
+    ln = 7
+    if #Acc_pass > 0 then
+        term.setCursorPos(2,7)
+        term.setTextColor(colors.lightGray)
+        print("Name")
+        term.setCursorPos(18,7)
+        print("Account Number")
+        term.setCursorPos(40,7)
+        print("Password")
+
+        for i = offset, offset + 12 do
+            if i > #Acc_pass then break end
+
+            if selectedRow and i == selectedRow then
+                term.setBackgroundColor(colors.blue)
+                term.setCursorPos(2, ln+1)
+                term.write("                                       ")
+            else
+                term.setBackgroundColor(colors.white)
+            end
+
+            term.setTextColor(colors.black)
+            term.setCursorPos(2,ln+1)
+
+            term.write(Acc_pass[i][1])
+            term.setCursorPos(18,ln+1)
+            term.write(tostring(Acc_pass[i][3]):gsub("%.0", ""))
+            term.setCursorPos(40,ln+1)
+            term.write(string.gsub(tostring(Acc_pass[i][2]), "[^()]", "*"))
+
+            ln = ln + 1
+            -- term.setTextColor(colors.red)
+            -- term.setCursorPos(2,ln+1)
+
+            -- term.write(Acc_pass[i][1])
+            -- term.setCursorPos(18,ln+1)
+            -- term.write(tostring(Acc_pass[i][3]):gsub("%.0", ""))
+            -- term.setCursorPos(40,ln+1)
+            -- term.write(string.gsub(tostring(Acc_pass[i][2]), "[^()]", "*"))
+
+            -- ln = ln + 1    
+          end        
+        end
+    else
+        term.setCursorPos(2,7)
+        term.setTextColor(colors.lightGray)
+        print("Name")
+        term.setCursorPos(18,7)
+        print("Account Number")
+        term.setCursorPos(40,7)
+        print("Password")
+    end
+
+  if first_start == "yes" then
+    f = fs.open("first_start","w")
+    f.write("no")
+    f.close()
+    first_start = "no"
+    startServer()
+  end
+end
+
+function stopServer(reason)
+ 
+ Running_Status = "Not Running"
+ offline = 1
+ currentView = "offline"
+ logMsg("Unloading users..", messageLevel.Info)
+ logMsg("Users unloaded.", messageLevel.Success)
+ logMsg("Server stopped.", messageLevel.Warning)
+ logMsg("Reason: "..reason)
+
+
+end
+
+selected = false
+
+function userClicks()
+user = nil
+userID = nil
+userN = nil
+userP = nil
+    while true do
+     local event, button, xPos, yPos = os.pullEvent("mouse_click")
+       if event == "mouse_click" then
+        if currentView == "accounts" then
+         if xPos >= 2 and xPos <= 6 and yPos == 5 then
+           term.setCursorPos(2,5)
+           term.setBackgroundColor(colors.blue)
+           term.setTextColor(colors.lightGray)
+           term.write(" Add ")
+           sleep(0.1)
+           term.setCursorPos(2,5)
+           term.setBackgroundColor(colors.white)
+           term.setTextColor(colors.gray)   
+           term.write(" Add ")
+          if offline == 0 then
+           printMsg("Adding a user.")
+           term.setBackgroundColor(colors.lightGray)
+           term.setTextColor(colors.white)
+           term.setCursorPos(17,10)
+           term.write("Password: ")           
+           term.setCursorPos(17,8)
+           term.write("Username: ")
+           userN = read()
+           term.setCursorPos(17,10)
+           term.write("Password: ")
+           logMsg("Creating account '"..userN.."'..", messageLevel.Info)
+           userP = read("*")
+           addUser(userN,userP)
+           sleep(0.2)
+           printUsers(currentOffset)
+           logMsg("Created account of user: "..userN, messageLevel.Success)
+          end
+         elseif xPos >= 8 and xPos <= 13 and yPos == 5 then
+           term.setCursorPos(8,5)
+           term.setTextColor(colors.lightGray)
+           term.setBackgroundColor(colors.blue)
+           term.write(" Edit ")
+           sleep(0.2)
+           term.setCursorPos(8,5)
+           term.setBackgroundColor(colors.white)
+           term.setTextColor(colors.black)           
+           term.write(" Edit ")
+       if offline == 0 then          
+          if selectedAccount then
+          	user = selectedAccount[1]
+          	userID = selectedAccount[3]
+          	userPass = selectedAccount[2]
+            printMsg("Changing "..user.."'s account.")
+            term.setBackgroundColor(colors.lightGray)
+            term.setTextColor(colors.white)
+            term.setCursorPos(17,8)
+            term.write("New Password: ")                	
+          	term.setBackgroundColor(colors.lightGray)
+          	password = read("*")
+          	logMsg("Changing account '"..user.."'..", messageLevel.Warning)
+			      Acc_pass[selectedRow] = {user,password,userID}
+            logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
+            local f = fs.open("Users", "w")
+            f.write(textutils.serialize(Acc_pass))
+            f.close()
+            printUsers(currentOffset)
+          end
+        end
+         elseif xPos >= 15 and xPos <= 22 and yPos == 5 then
+           term.setCursorPos(15,5)
+           term.setBackgroundColor(colors.white)
+           term.setTextColor(colors.red)
+           term.write(" Delete ")
+           sleep(0.2)
+           term.setCursorPos(15,5)
+           term.setBackgroundColor(colors.red)
+           term.setTextColor(colors.white)
+           term.write(" Delete ")
+      if offline == 0 then
+          if selectedAccount then
+          	user = selectedAccount[1]
+          	userID = selectedAccount[3]
+          	userPass = selectedAccount[2]
+          	table.remove(Acc_pass,selectedRow)
+          	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
+          	logMsg("Deleted account of user: "..user, messageLevel.Success)
+          	selectedAccount = Acc_pass[selectedRow]      	
+          	printUsers(currentOffset)
+          end 
+        end
+         elseif xPos >= 28 and xPos <= 32 and yPos == 2 then
+           term.setCursorPos(28,2)
+           term.setBackgroundColor(colors.blue)
+           term.setTextColor(colors.white)
+           term.write(" Log ")
+           sleep(0.1)
+		       currentView = "log"
+           logview.printLogs(currentOffset)
+          return
+         elseif xPos >= 24 and xPos <= 32 and yPos == 5 then
+          if offline == 0 then  
+           term.setCursorPos(24,5)
+           term.setBackgroundColor(colors.blue)
+           term.write(" Backup ")
+           logMsg("Creating backup..", messageLevel.Info)
+           sleep(0.5)
+           term.setCursorPos(24,5)
+           term.setBackgroundColor(colors.lightGray)
+           write("        ")
+           term.setCursorPos(24,5)
+           term.setBackgroundColor(colors.white)
+           term.setTextColor(colors.black)
+           term.write(" Done ")
+           logMsg("Created backup.", messageLevel.Success)
+          if fs.exists("Backup") then
+           fs.delete("Backup/Users")
+           fs.copy("Users","Backup/Users")
+          else
+           fs.makeDir("Backup")
+           fs.copy("Users","Backup/Users")
+          end
+          sleep(0.2)
+          printUsers(currentOffset)
+        end
+         elseif xPos >= 21 and xPos <= 26 and yPos == 2 then
+             	 currentView = "lock"
+        	return
+         elseif xPos >= 45 and xPos <= 51 and yPos == 2 then
+           currentView = "exit"
+          break
+         else
+          if offline == 0 then
+            if selectedRow and not(selectedRow == currentOffset + yPos - 8) then
+                selectedRow = nil
+                selectedAccount = nil
+                printUsers(currentOffset)
+                userClicks()
+            else
+                selectedRow = currentOffset + yPos - 8
+                selectedAccount = Acc_pass[selectedRow]
+               if selectedAccount == nil then
+               else
+
+                term.setCursorPos(2,yPos)
+                term.setBackgroundColor(colors.blue)
+                term.write("                                       ")
+                term.setTextColor(colors.black)
+                term.setCursorPos(2,yPos)
+                term.write(selectedAccount[1])
+                term.setCursorPos(18,yPos)
+                term.write(tostring(selectedAccount[3]):gsub("%.0", ""))
+                term.setCursorPos(40,yPos)
+                term.write(string.gsub(tostring(selectedAccount[2]), "[^()]", "*"))
+              end
+            end
+          end
+         end
+      elseif currentView == "modemCheck" then
+        if xPos >= 45 and xPos <= 50 and yPos == 18 then
+          term.setBackgroundColor(colors.white)
+          term.setTextColor(colors.red)
+          term.setCursorPos(45,18)
+          term.write(" Quit ")
+          sleep(0.2)  
+          term.setBackgroundColor(colors.red)
+          term.setTextColor(colors.white)
+          term.setCursorPos(45,18)          
+          term.write(" Quit ")
+          sleep(0.1)
+          currentView = "exit"
+         break
+        end
+      end
+    end
+  end
+end
+
+function userPress()
+
+while true do
+  local evt, s = os.pullEvent("key") -- wait for a key press
+
+  s = tonumber(s)
+
+  if s == 211 then
+           term.setCursorPos(15,5)
+           term.setBackgroundColor(colors.white)
+           term.setTextColor(colors.red)
+           term.write(" Delete ")
+           sleep(0.2)
+           term.setCursorPos(15,5)
+           term.setBackgroundColor(colors.red)
+           term.setTextColor(colors.white)
+           term.write(" Delete ")
+          if selectedAccount then
+          	user = selectedAccount[1]
+          	userID = selectedAccount[3]
+          	userPass = selectedAccount[2]
+          	table.remove(Acc_pass,selectedRow)
+          	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
+          	logMsg("Deleted account of user: "..user, messageLevel.Success)
+          	selectedAccount = Acc_pass[selectedRow]      	
+          	printUsers(currentOffset)
+          end 
+   elseif s == 56 then
+   	 currentView = "lock"
+   	return
+   elseif s == 200 then
+   if selectedRow then
+    if selectedRow == 1 then
+    else
+     selectedRow = selectedRow - 1
+     selectedAccount = Acc_pass[selectedRow]
+     printUsers(currentOffset)
+    end
+   end
+   elseif s == 208 then
+   if selectedRow then
+    if selectedRow == table.getn(Acc_pass) then
+    else
+     selectedRow = selectedRow + 1
+     selectedAccount = Acc_pass[selectedRow]
+     printUsers(currentOffset)
+     end   	
+    end
+   elseif s == 1 then
+   	if selectedRow then
+   	 selectedAccount = nil
+   	 selectedRow = nil
+   	 printUsers(currentOffset)
+    end
+   elseif s == 41 then
+   	if #Acc_pass > 0 then
+   	 selectedRow = 1
+   	 selectedAccount = Acc_pass[selectedRow]
+   	 printUsers(currentOffset)
+    end
+ end
+end
+
+
+end
+
+function userScrolls()
+    while true do
+        event, amount = os.pullEvent()
+        if event == "mouse_scroll" then
+            local lastOffset = currentOffset
+            if currentOffset + amount <= 1 then
+                currentOffset = 1
+            elseif (amount + currentOffset + 11 >= #Acc_pass) then
+                currentOffset = #Acc_pass - 11
+                if currentOffset <= 1 then
+                  currentOffset = 1
+                end
+            else
+                currentOffset = currentOffset + amount
+            end
+            if currentOffset ~= lastOffset then
+                printUsers(currentOffset)
+            end
+        end
+    end
+end
+
+
+
+while true do
+ if currentView == "accounts" then
+  printUsers(currentOffset)
+  parallel.waitForAny(userScrolls, userClicks, userPress,receiveMessages)
+ elseif currentView == "offline" then
+  printUsers(currentOffset)
+  parallel.waitForAny(userScrolls, userClicks)  
+ elseif currentView == "log" then
+  logview.printLogs(currentOffset)
+  parallel.waitForAny(logview.userScrolls, logview.userClicks, logview.userPress, receiveMessages)
+ elseif currentView == "modemCheck" then
+  while true do
+   if checkForModem() then
+    currentView = "accounts"
+    printUsers(currentOffset)
+   return
+   end
+  end
+    parallel.waitForAny(userClicks)
+ elseif currentView == "exit" then
+ if offline == 0 then
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.gray)
+  term.setCursorPos(28,2)
+  term.write(" Log ")
+  term.setCursorPos(34,2)
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.gray)
+  write(" Accounts ")
+  term.setTextColor(colors.white)
+  term.setBackgroundColor(colors.blue)
+  term.setCursorPos(45,2)
+  write(" Quit ")
+  sleep(0.5)
+ end
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1,1)
+  term.setTextColor(colors.white)
+  f = fs.open("first_start","w")
+  f.write("yes")
+  f.close()
+  fs.delete("Server.log")
+  print("Thankyou, for using jasper's Database.")
+  sleep(0.5)
+  return
+ elseif currentView == "lock" then
+   f = fs.open("Locked","w")
+   f.close()
+       function spp()
+		        term.setBackgroundColor(colors.white)
+    		    term.setTextColor(colors.cyan)
+    		    term.setCursorPos(21,2)
+    		    term.write(" Lock ")
+    		    term.clear()
+    		    term.setCursorPos(16,10)
+    		    term.write("Unlock password: ")
+    		    pass = read("*")
+    		    if sha256(tostring(pass)) == unlockPass then
+
+             logMsg("Console unlocked.")
+	           fs.delete("Locked")
+             if offline == 1 then
+              currentView = "offline"
+              parallel.waitForAny(userScrolls, userClicks)
+             else
+              currentView = "accounts"
+             end
+              printUsers(currentOffset)
+    		    else
+    		     logMsg("Someone tried wrong password.", messageLevel.Warning)
+    		     spp()
+    		   end
+    	     logMsg("Console locked.", messageLevel.Info)
+       end
+    	 parallel.waitForAny(receiveMessages, spp)
+ end
+end
+
