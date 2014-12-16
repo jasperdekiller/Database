@@ -481,8 +481,8 @@ function receiveMessages()
   id, m = rednet.receive()
 if offline == 0 then
   if tostring(m) == "@AddUser" then
-  	username = rednet.receive(1)
-  	password = rednet.receive(1)
+  	username = rednet.receive(2)
+  	password = rednet.receive(2)
    if username and password == nil then
    else
   	addUser(username, password)
