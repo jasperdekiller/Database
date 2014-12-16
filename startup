@@ -523,7 +523,8 @@ if offline == 0 then
    logMsg("Creating account '"..m.userName.."'..", messageLevel.Info)
    addUser(m.userName, m.userPass)
    rednet.send(id, "Success.")
-   logMsg("Created account of user: "..userN, messageLevel.Success)
+   logMsg("Created account of user: "..m.userName, messageLevel.Success)
+   logview.printLogs(currentOffset)
    printUsers(currentOffset)
   end
  end
