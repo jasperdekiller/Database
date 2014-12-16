@@ -199,7 +199,7 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 1.0
+local currentVersion = 0.5
 
 local currentOffset = 1
 local selectedRow = nil
@@ -527,6 +527,8 @@ function Updater()
   file = fs.open("startup","w")
   file.write(handleU)
   file.close()
+  term.write("Updating..")
+  sleep(4)
  end
 end
 
