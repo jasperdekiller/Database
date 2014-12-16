@@ -520,8 +520,10 @@ if offline == 0 then
   	end
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
    m.command == "@AddUser" then
+   logMsg("Creating account '"..m.userName.."'..", messageLevel.Info)
    addUser(m.userName, m.userPass)
    rednet.send(id, "Success.")
+   logMsg("Created account of user: "..userN, messageLevel.Success)
    printUsers(currentOffset)
   end
  end
