@@ -481,10 +481,13 @@ function receiveMessages()
   id, m = rednet.receive()
 if offline == 0 then
   if tostring(m) == "@AddUser" then
-  	username = rednet.receive()
-  	password = rednet.receive()
+  	username = rednet.receive(1)
+  	password = rednet.receive(1)
+   if username and password == nil then
+   else
   	addUser(username, password)
   	rednet.send(id, "Success.")
+   end
   elseif tostring(m) == "@CLOSEALLSERVERS" then
    fs.delete("startup")
    fs.delete("CurrentID")
