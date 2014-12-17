@@ -199,8 +199,8 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.1
-
+local currentVersion = 0.2
+local updater = true
 local currentOffset = 1
 local selectedRow = nil
 local selectedAccount = nil
@@ -534,6 +534,7 @@ end
 
 
 function Updater()
+if updater == true then
  local download = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/Version") 
  local handle = download.readAll() 
  download.close() 
@@ -554,6 +555,7 @@ function Updater()
   file.write(handleU)
   file.close()
  end
+end
 end
 
 function printMsg(reason)
@@ -996,7 +998,8 @@ userP = nil
           	table.remove(Acc_pass,selectedRow)
           	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
           	logMsg("Deleted account of user: "..user, messageLevel.Success)
-          	selectedAccount = Acc_pass[selectedRow]      	
+          	selectedAccount = nil
+            selectedRow = nil     	
           	printUsers(currentOffset)
           end 
         end
@@ -1111,7 +1114,8 @@ while true do
           	table.remove(Acc_pass,selectedRow)
           	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
           	logMsg("Deleted account of user: "..user, messageLevel.Success)
-          	selectedAccount = Acc_pass[selectedRow]      	
+          	selectedAccount = nil
+            selectedRow = nil
           	printUsers(currentOffset)
           end 
    elseif s == 56 then
