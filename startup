@@ -1197,6 +1197,7 @@ while true do
 end
     parallel.waitForAny(userClicks)
  elseif currentView == "exit" then
+ if offline == 0 then
   term.setBackgroundColor(colors.white)
   term.setTextColor(colors.gray)
   term.setCursorPos(28,2)
@@ -1209,6 +1210,7 @@ end
   term.setBackgroundColor(colors.blue)
   term.setCursorPos(45,2)
   write(" Quit ")
+ end
   sleep(0.5)
   term.setBackgroundColor(colors.black)
   term.clear()
