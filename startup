@@ -673,6 +673,7 @@ function checkForModem()
       return true   
      end
     end
+  offline = 1
   return false
 end
 
