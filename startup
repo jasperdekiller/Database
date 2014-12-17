@@ -943,6 +943,7 @@ userP = nil
            userP = read("*")
            addUser(userN,userP)
            sleep(0.2)
+           saveTable()
            printUsers(currentOffset)
            logMsg("Created account of user: "..userN, messageLevel.Success)
           end
@@ -974,9 +975,7 @@ userP = nil
           	logMsg("Changing account '"..user.."'..", messageLevel.Warning)
 			      Acc_pass[selectedRow] = {user,hashedPass,userID}
             logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
-            local f = fs.open("Users", "w")
-            f.write(textutils.serialize(Acc_pass))
-            f.close()
+            saveTable()
             printUsers(currentOffset)
           end
         end
@@ -1009,6 +1008,7 @@ userP = nil
            term.setTextColor(colors.white)
            term.write(" Log ")
            sleep(0.1)
+           saveTable()
 		       currentView = "log"
            logview.printLogs(currentOffset)
           return
@@ -1017,6 +1017,7 @@ userP = nil
            term.setCursorPos(24,5)
            term.setBackgroundColor(colors.blue)
            term.write(" Backup ")
+           saveTable()
            logMsg("Creating backup..", messageLevel.Info)
            sleep(0.5)
            term.setCursorPos(24,5)
@@ -1116,6 +1117,7 @@ while true do
           	logMsg("Deleted account of user: "..user, messageLevel.Success)
           	selectedAccount = nil
             selectedRow = nil
+            saveTable()
           	printUsers(currentOffset)
           end 
    elseif s == 56 then
@@ -1224,6 +1226,7 @@ while true do
   f.write("yes")
   f.close()
   fs.delete("Server.log")
+  saveTable()
   print("Thankyou, for using jasper's Database.")
   sleep(0.5)
   return
