@@ -199,8 +199,8 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.2
-local updater = false
+local currentVersion = 0.3
+local updater = true
 local currentOffset = 1
 local selectedRow = nil
 local selectedAccount = nil
@@ -759,7 +759,7 @@ function printUsers(offset)
 
     -- Layout --
 
-Updater()
+
 
     term.setBackgroundColor(colors.white)
     term.clear()
@@ -995,7 +995,8 @@ userP = nil
           	userPass = selectedAccount[2]
           	table.remove(Acc_pass,selectedRow)
           	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
-          	logMsg("Deleted account of user: "..user, messageLevel.Success) 	
+          	logMsg("Deleted account of user: "..user, messageLevel.Success)
+            selectedAccount = Acc_pass[selectedRow]	
           	printUsers(currentOffset)
           end 
          elseif xPos >= 28 and xPos <= 32 and yPos == 2 then
@@ -1111,8 +1112,7 @@ while true do
           	table.remove(Acc_pass,selectedRow)
           	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
           	logMsg("Deleted account of user: "..user, messageLevel.Success)
-          	selectedAccount = nil
-            selectedRow = nil
+            selectedAccount = Acc_pass[selectedRow] 
             saveTable()
           	printUsers(currentOffset)
           end 
@@ -1177,7 +1177,7 @@ function userScrolls()
     end
 end
 
-
+Updater()
 
 while true do
  if currentView == "accounts" then
