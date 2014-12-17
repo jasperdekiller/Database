@@ -200,7 +200,7 @@ local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
 local currentVersion = 0.2
-local updater = true
+local updater = false
 local currentOffset = 1
 local selectedRow = nil
 local selectedAccount = nil
@@ -989,19 +989,15 @@ userP = nil
            term.setBackgroundColor(colors.red)
            term.setTextColor(colors.white)
            term.write(" Delete ")
-      if offline == 0 then
           if selectedAccount then
           	user = selectedAccount[1]
           	userID = selectedAccount[3]
           	userPass = selectedAccount[2]
           	table.remove(Acc_pass,selectedRow)
           	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
-          	logMsg("Deleted account of user: "..user, messageLevel.Success)
-          	selectedAccount = nil
-            selectedRow = nil     	
+          	logMsg("Deleted account of user: "..user, messageLevel.Success) 	
           	printUsers(currentOffset)
           end 
-        end
          elseif xPos >= 28 and xPos <= 32 and yPos == 2 then
            term.setCursorPos(28,2)
            term.setBackgroundColor(colors.blue)
