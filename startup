@@ -199,7 +199,7 @@ end
 local Running_Status = "Not running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.1
+local currentVersion = 0.2
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -1195,16 +1195,22 @@ while true do
   printUsers(currentOffset)
   parallel.waitForAny(userScrolls, userClicks)  
  elseif currentView == "log" then
+  selectedRow = nil
+  selectedAccount = nil
   logview.printLogs(currentOffset)
   parallel.waitForAny(logview.userScrolls, logview.userClicks, logview.userPress, receiveMessages)
  elseif currentView == "modemCheck" then
+  function Sp()
   while true do
    if checkForModem() then
     currentView = "accounts"
     printUsers(currentOffset)
-   return
+  break
+   else
+    Sp()
    end
   end
+end
     parallel.waitForAny(userClicks)
  elseif currentView == "exit" then
  if offline == 0 then
