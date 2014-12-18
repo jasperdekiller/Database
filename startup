@@ -727,13 +727,12 @@ if checkForModem() then
 
  m = nil
 
- id, m = rednet.receive(1)
+ id, m = rednet.receive(0.2)
 
  if m == "@ServerAround" then
   stopServer("Another server is running.")
 else
   logMsg("No other servers were found.", messageLevel.Success)
-  sleep(0.1)
   logMsg("Starting server..", messageLevel.Info)
   logMsg("Server started!", messageLevel.Success)
   term.setCursorPos(2,2)
@@ -1270,6 +1269,6 @@ end
     end
    end
      logMsg("Console locked.", messageLevel.Info)
-     parallel.waitForAll(receiveMessages, Lock) 
+     parallel.waitForAny(receiveMessages, Lock) 
  end
 end
