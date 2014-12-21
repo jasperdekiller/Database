@@ -1,14 +1,12 @@
 -- This program was made by Jasperdekiller.
--- Dont edit or steal any code. Dont copyright it to
--- yourself. I hope you enjoy my Database and that you
--- will like the interface.
+-- Dont edit or steal any code. Dont own the Credits.
 
 os.pullEvent = os.pullEventRaw
 
 -- Check for advanced Computer --
 
 if not term.isColor or not term.isColor() then
-        error("Jasper's Database Requires an Advanced Computer")
+        error("Jasper's Database Requires an Advanced Computer.")
 end
 
 
