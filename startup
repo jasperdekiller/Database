@@ -303,7 +303,11 @@ function logview.printLogs(offset)
 	term.setCursorPos(2,2)
 	term.setBackgroundColor(colors.white)
 	term.setTextColor(colors.gray)
+ if offline == 0 then
 	term.write(" x ")
+ elseif offline == 1 then
+  term.write(" > ")
+ end
 	term.setCursorPos(6,2)
 	term.setBackgroundColor(colors.gray)
 	term.setTextColor(colors.white)
@@ -408,14 +412,22 @@ function logview.userClicks()
         break
       elseif xPos >= 2 and xPos <= 4 and yPos == 2 then
        term.setCursorPos(2,2)
-	   term.setBackgroundColor(colors.blue)
-	   term.setTextColor(colors.white)
-	   term.write(" x ")      
-	   sleep(0.2)
-	   term.setCursorPos(2,2)
-	   term.setBackgroundColor(colors.white)
-	   term.setTextColor(colors.gray)
-	   term.write(" x ")
+	     term.setBackgroundColor(colors.blue)
+	     term.setTextColor(colors.white)
+      if offline == 0 then
+       term.write(" x ")
+      elseif offline == 1 then
+       term.write(" > ")
+      end    
+	     sleep(0.2)
+	     term.setCursorPos(2,2)
+	     term.setBackgroundColor(colors.white)
+	     term.setTextColor(colors.gray)
+	    if offline == 0 then
+       term.write(" x ")
+      elseif offline == 1 then
+       term.write(" > ")
+      end
 	  if offline == 0 then
 	   stopServer("UserStopped")
 	  elseif offline == 1 then
@@ -535,7 +547,6 @@ if offline == 0 then
    fs.delete("CurrentID")
    fs.delete("Users")
    fs.delete("first_start")
-   fs.delete("Server.log")
    term.clear()
    term.setCursorPos(1,1)
    print("REMOVING DATABASE..")
@@ -684,19 +695,9 @@ else
     file:close()
 end
 
-if fs.exists("Server.log") then
-  f = fs.open("Server.log", "r")
-  log = textutils.unserialize(f.readAll())
-  f.close()
-else
-  f = fs.open("Server.log", "w")
-  f.write(textutils.serialize(log))
-  f.close()
-end
-
   file = fs.open("version","w")
   file.write(currentVersion)
-  f.close()
+  file.close()
 
 function checkForModem()
   for _, v in pairs(rs.getSides()) do
@@ -1283,7 +1284,6 @@ end
   f = fs.open("first_start","w")
   f.write("yes")
   f.close()
-  fs.delete("Server.log")
   saveTable()
   print("Thankyou, for using jasper's Database.")
   sleep(0.5)
