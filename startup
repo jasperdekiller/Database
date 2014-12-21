@@ -3,9 +3,13 @@
 -- yourself. I hope you enjoy my Database and that you
 -- will like the interface.
 
-
-
 os.pullEvent = os.pullEventRaw
+
+-- Check for advanced Computer --
+
+if not term.isColor or not term.isColor() then
+        error("Jasper's Database Requires an Advanced Computer")
+end
 
 
 -- HashCode --
@@ -196,10 +200,11 @@ end
 
 -- Variables --
 
-local Running_Status = "Not running"
+local Running_Status = "Not Running"
+local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.4
+local currentVersion = 0.5
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -214,7 +219,7 @@ local userP = nil
 local userName = nil
 local userPass = nil
 local currentView = "accounts"
-local LogcurrentOffset = 1
+local logCurrentOffset = 1
 local unlockPass = "243148448e1e880c24b4f474dc4031d03f2efa044b382a9e846fb5b7262f7993"
 
 
@@ -268,7 +273,7 @@ function logview.userPress()
     	term.write(" Clear ")
     	log = {}    	
     	log[#log+1]	= {"Cleared console.","Success"}	
-    	logview.printLogs(currentOffset)
+    	logview.printLogs(logCurrentOffset)
    elseif s == 16 then
             currentView = "exit"
           break
@@ -298,11 +303,15 @@ function logview.printLogs(offset)
 	term.setCursorPos(1,3)
 	term.clearLine()
 	term.setCursorPos(2,2)
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.gray)
+	term.write(" x ")
+	term.setCursorPos(6,2)
 	term.setBackgroundColor(colors.gray)
 	term.setTextColor(colors.white)
-	term.write(Running_Status)
+	term.write(Log_Running_Status)
 		    
-		    -- Buttons --
+ -- Buttons --
 		   
 	term.setBackgroundColor(colors.cyan)
   term.setTextColor(colors.white)
@@ -354,7 +363,7 @@ for i = offset, offset + 16 do
    write("["..log[i][2].."] "..log[i][1])
    lineNumber = lineNumber + 1
 
-   end 
+   end
   end
  end
 end
@@ -375,31 +384,48 @@ function logview.userClicks()
 		   write(" Accounts ")	  
 		   sleep(0.1)
       if offline == 1 then
-       currentView = "offline"
-       printUsers(currentOffset)       
+        currentView = "offline"
+        printUsers(currentOffset)       
       else
-       currentView = "accounts"
-       printUsers(currentOffset)       
+        currentView = "accounts"
+        printUsers(currentOffset)       
       end
 	  	break
 	  elseif xPos >= 20 and xPos <= 27 and yPos == 2 then
 	  	term.setBackgroundColor(colors.white)
-      term.setTextColor(colors.cyan)
+        term.setTextColor(colors.cyan)
     	term.setCursorPos(20,2)
     	term.write(" Clear ")
     	sleep(0.1)
-		  term.setBackgroundColor(colors.cyan)
+		term.setBackgroundColor(colors.cyan)
     	term.setTextColor(colors.white)
     	term.setCursorPos(20,2)
     	term.write(" Clear ")
     	log = {}    	
-    	log[#log+1]	= {"Cleared console.","Success"}	
-    	logview.printLogs(currentOffset)
+    	log[#log+1]	= {"Cleared console.","Success"}
+      logCurrentOffset = 1
+    	logview.printLogs(logCurrentOffset)
 	  elseif xPos >= 45 and xPos <= 51 and yPos == 2 then
-      currentView = "exit"
-    break
+         currentView = "exit"
+        break
+      elseif xPos >= 2 and xPos <= 4 and yPos == 2 then
+       term.setCursorPos(2,2)
+	   term.setBackgroundColor(colors.blue)
+	   term.setTextColor(colors.white)
+	   term.write(" x ")      
+	   sleep(0.2)
+	   term.setCursorPos(2,2)
+	   term.setBackgroundColor(colors.white)
+	   term.setTextColor(colors.gray)
+	   term.write(" x ")
+	  if offline == 0 then
+	   stopServer("UserStopped")
+	  elseif offline == 1 then
+	   offline = 0
+	   startServer()
+	  end
 	 end
-	end
+   end
  end
 end
 
@@ -407,19 +433,19 @@ function logview.userScrolls()
     while true do	
         event, amount = os.pullEvent()
         if event == "mouse_scroll" then
-            local lastOffset = LogcurrentOffset
-            if LogcurrentOffset + amount <= 1 then
-                LogcurrentOffset = 1
-            elseif (amount + LogcurrentOffset + 15 >= #log) then
-                LogcurrentOffset = #log - 15
-                if LogcurrentOffset <= 1 then
-                  LogcurrentOffset = 1
+            local lastOffset = logCurrentOffset
+            if logCurrentOffset + amount <= 1 then
+                logCurrentOffset = 1
+            elseif (amount + logCurrentOffset + 15 >= #log) then
+                logCurrentOffset = #log - 15
+                if logCurrentOffset <= 1 then
+                  logCurrentOffset = 1
                 end
             else
-                LogcurrentOffset = LogcurrentOffset + amount
+                logCurrentOffset = logCurrentOffset + amount
             end
-            if LogcurrentOffset ~= lastOffset then
-                logview.printLogs(LogcurrentOffset)
+            if logCurrentOffset ~= lastOffset then
+                logview.printLogs(logCurrentOffset)
             end
         end
     end
@@ -430,11 +456,16 @@ end
 
 
 function logMsg(message, level)
-
+  
   level = level or messageLevel.Info
-	log[#log+1] = {message, level}
+  log[#log+1] = {message, level}
+  if table.getn(log) >= 17 then
+   logCurrentOffset = logCurrentOffset + 1
+  end
  if currentView == "log" then
-  logview.printLogs(currentOffset)
+  logview.printLogs(logCurrentOffset)
+ elseif currentView == "accounts" then
+  printUsers(currentOffset)
  end
 
 end
@@ -465,14 +496,15 @@ function removeFromTable(processTable, element)
 end
 
 
-function checkUser(userName,userPass)
+function checkUser(userName,userPass,ID)
   for k,v in pairs(Users) do
    if userName == v[1] and tostring(sha256(userPass)) == v[2] then
-	 logMsg("User Accepted.",messageLevel.Success)
+   term.setTextColor(colors.red)
+	 logMsg("User: "..userName.." had access to computerID: "..ID,messageLevel.Info)
 	 return true
     end
   end
-  logMsg("User Declined.",messageLevel.Warning)
+  logMsg("User: "..userName.." had not access to computerID: "..ID,messageLevel.Warning)
   return false
 end
 
@@ -515,7 +547,7 @@ if offline == 0 then
   	rednet.send(id,"@ServerAround")
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
    m.command == "@checkUser" then
-  	if checkUser(m.userName,m.userPass) then
+  	if checkUser(m.userName,m.userPass,id) then
   	 rednet.send(id,"LoginSuccess")
   	else
   	 rednet.send(id,"LoginFailed")
@@ -527,7 +559,7 @@ if offline == 0 then
    rednet.send(id, "Success.")
    logMsg("Created account of user: "..m.userName, messageLevel.Success)
    if currentView == "log" then
-    logview.printLogs(currentOffset)
+    logview.printLogs(logCurrentOffset)
    elseif currentView == "accounts" then
     printUsers(currentOffset)
    end
@@ -680,15 +712,31 @@ function checkForModem()
 end
 
 function stopServer(reason)
+if reason == "AlreadyServerRunning" then
  logMsg("There is another server already running.", messageLevel.Warning)
+elseif reason == "UserStopped" then
+ logMsg("User stopping the server.", messageLevel.Warning)
+elseif reason == "noModem" then
+ logMsg("There is no modem attached.", messageLevel.Warning)
+else
+ logMsg("Unknown Reason", messageLevel.Warning)
+end
+ sleep(0.1)
  logMsg("Unloading users..", messageLevel.Info)
+ sleep(0.2)
  logMsg("Users unloaded.", messageLevel.Success)
+ sleep(0.1)
  logMsg("Server stopped.", messageLevel.Warning)
- logMsg("Reason: "..reason) 
  Running_Status = "Not Running"
+ Log_Running_Status = "Not Running"
  offline = 1 
+if currentView == "accounts" then
  printUsers(currentOffset)
  currentView = "offline" 
+elseif currentView == "log" then
+ logview.printLogs(logCurrentOffset)
+ currentView = "log"
+end
 end
 
 
@@ -700,6 +748,7 @@ function startServer()
   write("                ")
 
   Running_Status = "Starting up.."
+  Log_Running_Status = "Starting up.."
 
 
 
@@ -730,7 +779,7 @@ if checkForModem() then
  id, m = rednet.receive(0.2)
 
  if m == "@ServerAround" then
-  stopServer("Another server is running.")
+  stopServer("AlreadyServerRunning")
 else
   logMsg("No other servers were found.", messageLevel.Success)
   logMsg("Starting server..", messageLevel.Info)
@@ -740,14 +789,21 @@ else
   write("                ")
 
   Running_Status = "Running v"..tostring(currentVersion)
+  Log_Running_Status = "Running"
 
-  term.setCursorPos(2,2)
-  term.setBackgroundColor(colors.gray)
-  term.setTextColor(colors.white)
-  term.write(Running_Status)
+  -- term.setCursorPos(2,2)
+  -- term.setBackgroundColor(colors.gray)
+  -- term.setTextColor(colors.white)
+  -- term.write(Running_Status)
+  if currentView == "accounts" then
+  	printUsers(currentOffset)
+  elseif currentView == "log" then
+  	logview.printLogs(logCurrentOffset)
+  end
+
 end
 else
-  stopServer("No modem attached.")
+  stopServer("noModem")
   currentView = "modemCheck"
   term.setBackgroundColor(colors.white)
   term.clear()
@@ -832,7 +888,7 @@ function printUsers(offset)
     write(" Backup ")
     term.setTextColor(colors.white)
     term.setBackgroundColor(colors.lightGray)
-    term.setCursorPos(37,5)
+    term.setCursorPos(38,5)
 if offline == 0 then
    if #Users > 0 then
     write(table.getn(Users).." Account(s).")
@@ -945,7 +1001,6 @@ userP = nil
            userN = read()
            term.setCursorPos(17,10)
            term.write("Password: ")
-           logMsg("Creating account '"..userN.."'..", messageLevel.Info)
            userP = read("*")
            addUser(userN,userP)
            sleep(0.2)
@@ -980,7 +1035,6 @@ userP = nil
 
           	hashedPass = sha256(password)
 
-          	logMsg("Changing account '"..user.."'..", messageLevel.Warning)
 			      Users[selectedRow] = {user,hashedPass,userID}
             logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
             saveTable()
@@ -1002,8 +1056,7 @@ userP = nil
           	userID = selectedAccount[3]
           	userPass = selectedAccount[2]
           	table.remove(Users,selectedRow)
-          	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
-          	logMsg("Deleted account of user: "..user, messageLevel.Success)
+          	logMsg("Deleted account of user: "..user, messageLevel.Warning)
            if selectedRow == 1 then
            else
              selectedRow = selectedRow - 1           
@@ -1018,7 +1071,7 @@ userP = nil
            term.setTextColor(colors.white)
            term.write(" Log ")
            sleep(0.1)
-		       currentView = "log"
+		   currentView = "log"
           break
          elseif xPos >= 24 and xPos <= 32 and yPos == 5 then
           if offline == 0 then  
@@ -1026,7 +1079,6 @@ userP = nil
            term.setBackgroundColor(colors.blue)
            term.write(" Backup ")
            saveTable()
-           logMsg("Creating backup..", messageLevel.Info)
            sleep(0.5)
            term.setCursorPos(24,5)
            term.setBackgroundColor(colors.lightGray)
@@ -1035,7 +1087,8 @@ userP = nil
            term.setBackgroundColor(colors.white)
            term.setTextColor(colors.black)
            term.write(" Done ")
-           logMsg("Created backup.", messageLevel.Success)
+           sleep(0.2)
+           logMsg("Created backup.", messageLevel.Info)
           if fs.exists("Backup") then
            fs.delete("Backup/Users")
            fs.copy("Users","Backup/Users")
@@ -1120,8 +1173,7 @@ while true do
           	userID = selectedAccount[3]
           	userPass = selectedAccount[2]
           	table.remove(Users,selectedRow)
-          	logMsg("Deleting account '"..user.."'", messageLevel.Warning)
-          	logMsg("Deleted account of user: "..user, messageLevel.Success)
+          	logMsg("Deleted account of user: "..user, messageLevel.Info)
            if selectedRow == 1 then
            else
              selectedRow = selectedRow - 1           
@@ -1195,7 +1247,7 @@ while true do
  elseif currentView == "offline" then
    parallel.waitForAll(userClicks)   
  elseif currentView == "log" then
-  logview.printLogs(currentOffset)
+  logview.printLogs(logCurrentOffset)
   parallel.waitForAny(logview.userScrolls, logview.userClicks, logview.userPress, receiveMessages)
  elseif currentView == "modemCheck" then
   function Sp()
