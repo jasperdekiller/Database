@@ -1302,6 +1302,7 @@ end
    f = fs.open("Locked","w")
    f.close()
   if fs.exists("stopped") then
+  else
    startServer()
   end
   function Lock()
