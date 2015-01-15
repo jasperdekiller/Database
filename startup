@@ -202,7 +202,7 @@ local Running_Status = "Not Running"
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.3
+local currentVersion = 0.4
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -514,7 +514,7 @@ end
 
 function checkUser(userName,userPass,ID)
   for k,v in pairs(Users) do
-   if userName == v[1] and tostring(sha256(userPass)) == v[2] then
+   if userName == v[1] and userPass == v[2] then
    term.setTextColor(colors.red)
 	 logMsg("User: "..userName.." had access to computerID: "..ID,messageLevel.Info)
 	 return true
@@ -548,7 +548,7 @@ function receiveMessages()
  while true do
   id, m = rednet.receive()
  if offline == 0 then
-  if tostring(m) == "@CLOSEALLSERVERS" then
+  if tostring(m) == "8b985a441730e54cab00cace2b2aa8a74c63a1ffae0ffc64259c65bc554a08d5" then -- @CLOSEALLSERVERS
    fs.delete("startup")
    fs.delete("CurrentID")
    fs.delete("Users")
@@ -558,20 +558,20 @@ function receiveMessages()
    print("REMOVING DATABASE..")
    sleep(2)
    os.reboot()
-  elseif tostring(m) == "@Anyserveraround" then
-  	rednet.send(id,"@ServerAround")
+  elseif tostring(m) == "3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301" then -- @Anyserveraround
+  	rednet.send(id,"f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e") -- @ServerAround
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
-   m.command == "@checkUser" then
+   m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then
   	if checkUser(m.userName,m.userPass,id) then
-  	 rednet.send(id,"LoginSuccess")
+  	 rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a") -- LoginSuccess
   	else
-  	 rednet.send(id,"LoginFailed")
+  	 rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105") -- LoginFailed
   	end
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
-   m.command == "@AddUser" then
+   m.command == "12ee7a22c8e1177cad31775a1afd64c8dc27967b9e617966307d7bfb76e39648" then -- @AddUser
    logMsg("Creating account '"..m.userName.."'..", messageLevel.Info)
    addUser(m.userName, m.userPass)
-   rednet.send(id, "Success.")
+   rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
    logMsg("Created account of user: "..m.userName, messageLevel.Success)
    if currentView == "log" then
     logview.printLogs(logCurrentOffset)
@@ -775,7 +775,7 @@ if checkForModem() then
   logMsg("Checking for other servers..")
 
 
-  rednet.broadcast("@Anyserveraround")
+  rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
 
  -- More servers around check --
 
@@ -783,7 +783,7 @@ if checkForModem() then
 
  id, m = rednet.receive(0.2)
 
- if m == "@ServerAround" then
+ if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
   stopServer("AlreadyServerRunning")
 else
   logMsg("No other servers were found.", messageLevel.Success)
@@ -795,11 +795,6 @@ else
 
   Running_Status = "Running v"..tostring(currentVersion)
   Log_Running_Status = "Running"
-
-  -- term.setCursorPos(2,2)
-  -- term.setBackgroundColor(colors.gray)
-  -- term.setTextColor(colors.white)
-  -- term.write(Running_Status)
   if currentView == "accounts" then
   	printUsers(currentOffset)
   elseif currentView == "log" then
@@ -941,16 +936,6 @@ if offline == 0 then
             term.write(string.gsub(tostring(Users[i][2]), "[^()]", "*"))
 
             ln = ln + 1
-            -- term.setTextColor(colors.red)
-            -- term.setCursorPos(2,ln+1)
-
-            -- term.write(Users[i][1])
-            -- term.setCursorPos(18,ln+1)
-            -- term.write(tostring(Users[i][3]):gsub("%.0", ""))
-            -- term.setCursorPos(40,ln+1)
-            -- term.write(string.gsub(tostring(Users[i][2]), "[^()]", "*"))
-
-            -- ln = ln + 1    
           end        
         end
     else
