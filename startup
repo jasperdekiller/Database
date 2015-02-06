@@ -202,23 +202,51 @@ local Running_Status = "Not Running"
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.4
+local currentVersion = 0.5
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
 local selectedAccount = nil
 local status = nil
+local bannedUsers = {}
+local Banned = {}
+local banTime = 5
+local maxLoginTriesLimit = 10
+local keyAmount = 0
+local startTime = 0
+local Console = true
+local keyAm = 0
+local lockTime = 15
 local first_start = "yes"
 local Lock = false
 local Modem = false
+local displayUsers = {}
 local serverStarted = false
 local userN = nil
 local userP = nil
+local crUser = false
+local searchBox = {}
+local latestLogMessage = nil
+local currentUsers = Users
+local searchPos = 33
+local enterPressed = false
 local userName = nil
 local userPass = nil
 local currentView = "accounts"
 local logCurrentOffset = 1
+local search = false
+local commandSearch = false
 local unlockPass = "243148448e1e880c24b4f474dc4031d03f2efa044b382a9e846fb5b7262f7993"
+
+-- Center Print
+local function centerPrint(Txt, Y)
+  local Width, Height = term.getSize()
+  local CurX, CurY = term.getCursorPos()
+  local X = math.floor((Width/2)-(string.len(Txt)/2))
+  local Y = Y or CurY + 1
+  term.setCursorPos(X,Y)
+  term.write(Txt)
+end
 
 
 
@@ -229,11 +257,14 @@ local messageLevel = {
     Success = 'Success',
     Warning = 'Warning',
     Error   = 'Error',
+    Alert   = 'Alert',
 }
 
 local Users = {}
 
 local log = {}
+
+local allLogs = {}
 --
 
 
@@ -243,7 +274,7 @@ function logview.userPress()
  while true do
   local evt, s = os.pullEvent("key") -- wait for a key press
   s = tonumber(s)
-
+  if evt == "key" and commandSearch == false then
    if s == 30 then
 		   term.setBackgroundColor(colors.white)
 		   term.setTextColor(colors.gray)
@@ -260,80 +291,80 @@ function logview.userPress()
 	  	 currentView = "accounts"
       end
 	  break
-   elseif s == 46 then
-	  	term.setBackgroundColor(colors.white)
-      term.setTextColor(colors.cyan)
-    	term.setCursorPos(20,2)
-    	term.write(" Clear ")
-    	sleep(0.1)
-		  term.setBackgroundColor(colors.cyan)
-    	term.setTextColor(colors.white)
-    	term.setCursorPos(20,2)
-    	term.write(" Clear ")
-    	log = {}    	
-    	log[#log+1]	= {"Cleared console.","Success"}	
-    	logview.printLogs(logCurrentOffset)
+   elseif s == 78 then
+    if offline == 0 then
+     stopServer()
+    end
    elseif s == 16 then
-            currentView = "exit"
-          break
+    currentView = "exit"
+      break
    elseif s == 56 then
    	 currentView = "lock"
    	return
    end 	
   end
+ end
+end
+
+function logview.printHeader()
+ term.setCursorPos(1,1)
+  term.setBackgroundColor(colors.gray)
+  term.clearLine()
+  term.setCursorPos(1,2)
+  term.clearLine()
+  term.setCursorPos(1,3)
+  term.clearLine()
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.gray)
+ if offline == 0 then
+  term.write(" x ")
+ elseif offline == 1 then
+  term.write(" > ")
+ end
+  term.setCursorPos(6,2)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.white)
+  term.write(Log_Running_Status)
+        
+ -- Buttons --
+       
+  term.setBackgroundColor(colors.cyan)
+  term.setTextColor(colors.white)
+  term.setCursorPos(18,2)
+  term.write(" Options ")
+  term.setBackgroundColor(colors.blue)
+  term.setTextColor(colors.white)
+  term.setCursorPos(28,2)
+  term.write(" Log ")
+  term.setCursorPos(34,2)
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.gray)
+  write(" Accounts ")
+  term.setTextColor(colors.gray)
+  term.setBackgroundColor(colors.white)
+  term.setCursorPos(45,2)
+  write(" Quit ")  
+
 end
 
 
+
+
+
 function logview.printLogs(offset)
+lineNumber = 3
 
 -- Print the layout --
 
+  
   term.setCursorPos(34,2)
   term.setTextColor(colors.gray)
   term.setBackgroundColor(colors.white)
   term.write(" Accounts ")
-	term.setBackgroundColor(colors.white)
-	term.clear()
-	term.setCursorPos(1,1)
-	term.setBackgroundColor(colors.gray)
-	term.clearLine()
-	term.setCursorPos(1,2)
-	term.clearLine()
-	term.setCursorPos(1,3)
-	term.clearLine()
-	term.setCursorPos(2,2)
-	term.setBackgroundColor(colors.white)
-	term.setTextColor(colors.gray)
- if offline == 0 then
-	term.write(" x ")
- elseif offline == 1 then
-  term.write(" > ")
- end
-	term.setCursorPos(6,2)
-	term.setBackgroundColor(colors.gray)
-	term.setTextColor(colors.white)
-	term.write(Log_Running_Status)
-		    
- -- Buttons --
-		   
-	term.setBackgroundColor(colors.cyan)
-  term.setTextColor(colors.white)
-  term.setCursorPos(20,2)
-  term.write(" Clear ")
-	term.setBackgroundColor(colors.blue)
-	term.setTextColor(colors.white)
-	term.setCursorPos(28,2)
-	term.write(" Log ")
-	term.setCursorPos(34,2)
-	term.setBackgroundColor(colors.white)
-	term.setTextColor(colors.gray)
-	write(" Accounts ")
-	term.setTextColor(colors.gray)
-	term.setBackgroundColor(colors.white)
-	term.setCursorPos(45,2)
-	write(" Quit ")  
-
-lineNumber = 3
+  term.setBackgroundColor(colors.white)
+  term.clear()
+logview.printHeader()
 if #log > 0 then
 for i = offset, offset + 16 do
  if i > #log then break end
@@ -342,42 +373,87 @@ for i = offset, offset + 16 do
 
    term.setCursorPos(1,lineNumber+1)
    term.setTextColor(colors.blue)
-   write("["..log[i][2].."] "..log[i][1])
-   lineNumber = lineNumber + 1
+   write("["..log[i][2].."] ")
+   term.setTextColor(colors.lightGray)
+   x, y = term.getCursorPos()
+   term.setCursorPos(x,y)
+   write(log[i][1])
+
+   xP, lineNumber = term.getCursorPos()
 
   elseif log[i][2] == "Success" then
 
    term.setCursorPos(1,lineNumber+1)
    term.setTextColor(colors.green)
-   write("["..log[i][2].."] "..log[i][1])
-   lineNumber = lineNumber + 1
+   write("["..log[i][2].."] ")
+   term.setTextColor(colors.lightGray)
+   x, y = term.getCursorPos()
+   term.setCursorPos(x,y)
+   write(log[i][1])
+
+   xP, lineNumber = term.getCursorPos()
 
   elseif log[i][2] == "Warning" then
 
    term.setCursorPos(1,lineNumber+1)
    term.setTextColor(colors.red)
-   write("["..log[i][2].."] "..log[i][1])
-   lineNumber = lineNumber + 1
+   write("["..log[i][2].."] ")
+   term.setTextColor(colors.lightGray)
+   x, y = term.getCursorPos()
+   term.setCursorPos(x,y)
+   write(log[i][1])
+
+   xP, lineNumber = term.getCursorPos()
 
   elseif log[i][2] == "Error" then    	
 
    term.setCursorPos(1,lineNumber+1)
    term.setTextColor(colors.red)
-   write("["..log[i][2].."] "..log[i][1])
-   lineNumber = lineNumber + 1
+   write("["..log[i][2].."] ")
+   term.setTextColor(colors.lightGray)
+   x, y = term.getCursorPos()
+   term.setCursorPos(x,y)
+   write(log[i][1])
+
+   xP, lineNumber = term.getCursorPos()
+
+  elseif log[i][2] == "Alert" then      
+
+   term.setCursorPos(1,lineNumber+1)
+   term.setTextColor(colors.red)
+   write("["..log[i][2].."] ")
+   term.setTextColor(colors.lightGray)
+   x, y = term.getCursorPos()
+   term.setCursorPos(x,y)
+   write(log[i][1])
+
+   xP, lineNumber = term.getCursorPos()
 
    end
+    logview.printHeader()
   end
+  
  end
 end
 
+
 local server = true
+
+function UsernameToID(username)
+ for k,v in pairs(Banned) do
+  if v["username"] == username then
+   return v["currentBanNumber"]
+  end
+ end
+ return false
+end
 
 function logview.userClicks()
  while true do
 	local event, button, xPos, yPos = os.pullEvent()
 
 	if event == "mouse_click" then
+    startTime = 0
 	 if xPos >= 34 and xPos <= 44 and yPos == 2 then
 		   term.setBackgroundColor(colors.white)
 		   term.setTextColor(colors.gray)
@@ -396,20 +472,77 @@ function logview.userClicks()
         printUsers(currentOffset)       
       end
 	  	break
-	  elseif xPos >= 20 and xPos <= 27 and yPos == 2 then
+	  elseif xPos >= 18 and xPos <= 26 and yPos == 2 then
 	  	term.setBackgroundColor(colors.white)
-        term.setTextColor(colors.cyan)
-    	term.setCursorPos(20,2)
-    	term.write(" Clear ")
+      term.setTextColor(colors.cyan)
+    	term.setCursorPos(18,2)
+    	term.write(" Options ")
     	sleep(0.1)
-		term.setBackgroundColor(colors.cyan)
+		  term.setBackgroundColor(colors.cyan)
     	term.setTextColor(colors.white)
-    	term.setCursorPos(20,2)
-    	term.write(" Clear ")
-    	log = {}    	
-    	log[#log+1]	= {"Cleared console.","Success"}
-      logCurrentOffset = 1
-    	logview.printLogs(logCurrentOffset)
+    	term.setCursorPos(18,3)
+    	term.write(" Clear   ")
+      term.setCursorPos(18,4)
+      term.write(" Command ")
+      event, btn, x, y = os.pullEvent("mouse_click")
+      if event == "mouse_click" then
+       if x >= 18 and x <= 26 and y == 3 then
+      	log = {}
+        allLogs[#allLogs+1] = {"Cleared console."}
+      	log[#log+1]	= {"Cleared console.","Success"}
+        logCurrentOffset = 1
+      	logview.printLogs(logCurrentOffset)
+       elseif x >= 18 and x <= 26 and y == 4 then
+       function commandView()
+          commandSearch = true
+          printMsg("Command shell.")
+          term.setCursorPos(10,8)
+          term.setBackgroundColor(colors.lightGray)
+          write("Command: ")
+          term.setBackgroundColor(colors.white)
+          term.setCursorPos(10,9)
+          write("                     ")
+          term.setCursorPos(10,9)
+          term.setTextColor(colors.gray)
+          command = read()
+        if command == "unban" then
+          printMsg("Command shell.")
+          term.setCursorPos(10,8)
+          term.setBackgroundColor(colors.lightGray)
+          write("Player: ")
+          term.setBackgroundColor(colors.white)
+          term.setCursorPos(10,9)
+          write("                     ")
+          term.setCursorPos(10,9)
+          term.setTextColor(colors.gray)
+          player = read()          
+          commandSearch = false
+          if checkBanned(player) then
+            user_ID = UsernameToID(player)             
+           if user_ID ~= nil then      
+            unbanUser(user_ID)
+            logMsg("Console: Unbanned user '"..player.."'.",messageLevel.Success)
+            return
+           else
+            logMsg("Console: Something went wrong by converting the player name to ID. Restarting the Database would help sometimes.")
+            return
+           end
+          else
+           logMsg("Console: User '"..player.."' has never been banned.")
+           return
+          end
+           logview.printLogs(logCurrentOffset)
+           return
+        else
+         commandSearch = false
+         logMsg("Console: No such command",messageLevel.Warning)
+        end
+       end
+       commandView()
+       else
+        logview.printLogs(logCurrentOffset)
+       end
+      end
 	  elseif xPos >= 45 and xPos <= 51 and yPos == 2 then
          currentView = "exit"
         break
@@ -450,7 +583,8 @@ function logview.userScrolls()
     while true do	
         event, amount = os.pullEvent()
         if event == "mouse_scroll" then
-            local lastOffset = logCurrentOffset
+          logstartTime = 0
+            local loglastOffset = logCurrentOffset
             if logCurrentOffset + amount <= 1 then
                 logCurrentOffset = 1
             elseif (amount + logCurrentOffset + 15 >= #log) then
@@ -461,7 +595,7 @@ function logview.userScrolls()
             else
                 logCurrentOffset = logCurrentOffset + amount
             end
-            if logCurrentOffset ~= lastOffset then
+            if logCurrentOffset ~= loglastOffset then
                 logview.printLogs(logCurrentOffset)
             end
         end
@@ -472,18 +606,20 @@ end
 
 
 function logMsg(message, level)
-  
+ if message ~= latestLogMessage then
   level = level or messageLevel.Info
   log[#log+1] = {message, level}
+  allLogs[#allLogs+1] = {message}
+  latestLogMessage = message
   if table.getn(log) >= 17 then
    logCurrentOffset = logCurrentOffset + 1
   end
- if currentView == "log" then
+ if currentView == "log" and commandSearch == false then
   logview.printLogs(logCurrentOffset)
  elseif currentView == "accounts" then
   printUsers(currentOffset)
  end
-
+ end
 end
 
 function loadTable()
@@ -502,29 +638,146 @@ function saveTable()
 
 end
 
-function removeFromTable(processTable, element)
-    for k,v in pairs(processTable) do
-        if v == element then
-            table.remove(processTable, k)
-            return
-        end
-    end
+function autoLock()
+ autoLockTime = lockTime * 60
+while not Lock do
+ repeat
+  startTime = startTime + 1
+  sleep(1) 
+ until startTime == autoLockTime
+  currentView = "lock"
+  printUsers(currentOffset)
+  return
+end
 end
 
+function saveBanned()
 
-function checkUser(userName,userPass,ID)
-  for k,v in pairs(Users) do
-   if userName == v[1] and userPass == v[2] then
-   term.setTextColor(colors.red)
-	 logMsg("User: "..userName.." had access to computerID: "..ID,messageLevel.Info)
-	 return true
+ banFile = fs.open(".BannedList","w")
+ banFile.write(textutils.serialize(bannedUsers))
+ banFile.close()
+
+end
+
+function checkUserAndPass(username, Password, ID)
+   for k,v in pairs(Users) do
+    if username == v["name"] and Password == v["password"] then
+     logMsg("User: '"..username.."' succeed with his login try.",messageLevel.Success)
+     return true
     end
+   end
+    logMsg("User: '"..username.."' failed with his login try.",messageLevel.Warning)
+    return false
+end
+
+function unbanUser(userID)
+ userID = tonumber(userID)
+ table.remove(Banned,userID)
+end
+
+function checkBanned(username,ID)
+ for k,v in pairs(Banned) do
+  if v["username"] == username or v["userID"] == ID then
+   return true
   end
-  logMsg("User: "..userName.." had not access to computerID: "..ID,messageLevel.Warning)
+ end
   return false
 end
 
+function checkUser(userName,userPass,ID)
+ if checkBanned(userName, ID) == false then
+   if checkUserAndPass(userName, userPass, ID) then
+    return true
+   else
+    for k,v in pairs(bannedUsers) do
+
+     if v["name"] == userName then
+      currentWarningCount = v["warnings"]
+      newCurrentWarning = currentWarningCount + 1
+      if newCurrentWarning == maxLoginTriesLimit then
+       table.remove(bannedUsers, k)
+       logMsg("User: "..userName.." has been banned for "..banTime.." minutes.",messageLevel.Alert)
+       logMsg("Reason: This User tried to login too often.")
+       sleep(4)
+       newBanned = #Banned+1
+       Banned[newBanned] = {["username"] = userName, ["userID"] = ID, ["currentBanNumber"] = newBanned}       
+       logMsg("Banned Computer-ID & User.", messageLevel.Success)
+       return false
+      else
+       bannedUsers[k]["warnings"] = newCurrentWarning
+       return false
+      end
+   else
+    return false
+   end
+  end
+   bannedUsers[#bannedUsers+1] = {["name"] = userName, ["warnings"] = 1}
+   return false
+ end
+else
+ return false
+end
+  saveBanned()
+end
+
 -- Functions --
+
+function getValue(userName, valueName)
+ for k,v in pairs(Users) do 
+  if v["name"] == userName then
+   if Users[k][valueName] ~= nil then
+    return Users[k][valueName]
+   end
+  end
+ end
+  return false
+end
+
+function checkValue(userID, valueName)
+ for k,v in pairs(Users) do
+  if v["accountNumber"] == userID then
+   if Users[k][valueName] then
+    return true
+   else
+    return false
+   end
+  end
+ end
+  return false
+end
+
+function addValue(userID, valueName, value)
+ if userID and valueName and value then
+  if checkValue(userID, valueName) == false then
+   Users[userID][tostring(valueName)] = value
+   saveTable()
+   return true
+  else
+   return false
+  end
+ else
+  return false
+ end
+end
+
+function UsernameToAccountNumber(userName)
+ if userName then
+  for k,v in pairs(Users) do
+   if v["name"] == userName then
+    return Users[k]["accountNumber"]
+   end
+  end
+ end
+end
+
+function editValue(userName, valueName, newValue)
+ if getValue(userName, valueName) ~= false then
+  Users[UsernameToAccountNumber(userName)][tostring(valueName)] = newValue
+  saveTable()
+  return true
+ end
+  return false
+end
 
 function addUser(name, password)
 
@@ -532,17 +785,23 @@ function addUser(name, password)
  else
   current_acc_number = 0
  end
-  current_acc_number = current_acc_number + 1
 
 
-  Users[#Users+1] = {name, sha256(password), current_acc_number}
-  file = fs.open("CurrentID", "w")
-  file.write(tostring(current_acc_number))
-  file.close()
-  local f = fs.open("Users", "w")
-  f.write(textutils.serialize(Users))
-  f.close()
+
+ for k,v in pairs(Users) do
+  if v["name"] == name then
+   return false
+  end
+ end
+    current_acc_number = current_acc_number + 1
+    Users[#Users+1] = {["name"] = name, ["password"] = sha256(password),["accountNumber"] = current_acc_number}
+    file = fs.open("CurrentID", "w")
+    file.write(tostring(current_acc_number))
+    file.close()
+    saveTable()
+    return true
 end
+
 
 function receiveMessages()
  while true do
@@ -561,18 +820,47 @@ function receiveMessages()
   elseif tostring(m) == "3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301" then -- @Anyserveraround
   	rednet.send(id,"f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e") -- @ServerAround
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
-   m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then
+   m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
   	if checkUser(m.userName,m.userPass,id) then
   	 rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a") -- LoginSuccess
   	else
   	 rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105") -- LoginFailed
   	end
+  elseif type(m) == "table" and m.command and m.userName and m.valueName and
+    m.command == "10a06a0545f6c63fe601ba3476e24890e251f88d2ea6ef40bd2f76b1e8dd8f68" then -- @checkValue
+    logMsg("@Request for an user value check")
+    Value = getValue(m.userName, m.valueName)
+    rednet.send(id,Value)
+  elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and
+    m.command == "f5139b14c3fc44bc29fbf1dc10b0a1bba591376f455d1245edd98995f1d569fa" then -- @editValue
+    logMsg("@Post_request for an user value")
+
+    if editValue(m.userName, m.valueName, m.newValue) then
+     rednet.send(id,"6e826bd2d3d5465273dfe929ca787c6801ac920dceac34d18bee51410bba1b14") -- @valueEdited
+     logMsg("@Post_request scucceed.")
+    else
+     rednet.send(id, "b288c6bd3d7d5e73907e0b70d5955dbad79321fd11a4836078b0d2b1783ca67a") -- @valueNotEdited
+     logMsg("@Post_request failed.")
+    end
+elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and
+    m.command == "7c0c0f4a54ea147887248daa49047927c4d8399f657ae26946959e7066f4018d" then -- @addValue
+    logMsg("@Post_value_request for a value add.")
+    if addValue(UsernameToAccountNumber(m.userName), m.valueName, m.newValue) then
+     rednet.send(id, "9bb7a79fd4e278026e9b55e47e52e081a7b633e08e603775da6a103df0e9e9e8") -- @valueAdded
+     logMsg("@Post_value_request succeed.")
+    else
+     rednet.send(id, "b288c6bd3d7d5e73907e0b70d5955dbad79321fd11a4836078b0d2b1783ca67a") -- @valueNotAdded
+     logMsg("@Post_value_request failed.")
+    end
   elseif type(m) == "table" and m.command and m.userName and m.userPass and
    m.command == "12ee7a22c8e1177cad31775a1afd64c8dc27967b9e617966307d7bfb76e39648" then -- @AddUser
-   logMsg("Creating account '"..m.userName.."'..", messageLevel.Info)
-   addUser(m.userName, m.userPass)
-   rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
-   logMsg("Created account of user: "..m.userName, messageLevel.Success)
+   if addUser(m.userName, m.userPass) then
+    rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
+    logMsg("Created account of user: '"..m.userName.."'", messageLevel.Success)
+   else
+    rednet.send(id, "031a8f0f659df890dfd53c92e45295b0f14c997185bae46e168831e403b273f7") -- Failed.
+    logMsg("Failed creating account of user: '"..m.userName.."'", messageLevel.Warning)
+   end
    if currentView == "log" then
     logview.printLogs(logCurrentOffset)
    elseif currentView == "accounts" then
@@ -611,72 +899,42 @@ end
 end
 
 function printMsg(reason)
-           term.setTextColor(colors.white)
-           term.setCursorPos(15,6)
-           term.setBackgroundColor(colors.gray)
-           term.write(" Info: "..reason.."                                ")
- 
-           term.setCursorPos(15,7)
-           term.write(" ")
-           term.setCursorPos(16,7)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,7)
-           term.write(" ")
- 
-           term.setCursorPos(15,8)
-           term.write(" ")
-           term.setCursorPos(16,8)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,8)
-           term.write(" ")
- 
-           term.setCursorPos(15,9)
-           term.write(" ")
-           term.setCursorPos(16,9)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,9)
-           term.write(" ")
- 
-           term.setCursorPos(15,10)
-           term.write(" ")
-           term.setCursorPos(16,10)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,10)
-           term.write(" ")
- 
-           term.setCursorPos(15,11)
-           term.write(" ")
-           term.setCursorPos(16,11)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,11)
-           term.write(" ")
- 
-           term.setCursorPos(15,12)
-           term.write(" ")
-           term.setCursorPos(16,12)
-           term.setBackgroundColor(colors.lightGray)
-           term.write("                                    ")
-           term.setBackgroundColor(colors.gray)
-           term.setCursorPos(52,12)
-           term.write(" ")
- 
-           term.setCursorPos(15,13)
-           term.write("                                      ")
- 
+ search = false
+ crUser = false
+ term.setTextColor(colors.white)
+ term.setCursorPos(8,6)
+ term.setBackgroundColor(colors.gray)
+ term.write(string.rep(" ", 37))
+ term.setCursorPos(8,6)
+ term.write(" Info: "..reason)
+ for i = 7,13 do
+ term.setCursorPos(8,i)
+ term.write(" ")
+ term.setCursorPos(9,i)
+ term.setBackgroundColor(colors.lightGray)
+ term.write(string.rep(" ", 36))
+ term.setBackgroundColor(colors.gray)
+ term.setCursorPos(44,i)
+ term.write(" ")
+ end
+ term.setCursorPos(8,13)
+ term.write(string.rep(" ", 37))
 end
 
 
 -- Checks --
+
+if fs.exists(".RealBanList") then
+  local f = io.open(".RealBanList", "r")
+  Banned = textutils.unserialize(f:read("*a"))
+  f:close()
+end
+
+if fs.exists(".BannedList") then
+  local f = io.open(".BannedList", "r")
+  bannedUsers = textutils.unserialize(f:read("*a"))
+  f:close()
+end
 
 if fs.exists("Locked") then
  currentView = "lock"
@@ -720,18 +978,18 @@ function stopServer(reason)
 if reason == "AlreadyServerRunning" then
  logMsg("There is another server already running.", messageLevel.Warning)
 elseif reason == "UserStopped" then
- logMsg("User stopping the server.", messageLevel.Warning)
+ logMsg("Stopping the server.", messageLevel.Alert)
 elseif reason == "noModem" then
  logMsg("There is no modem attached.", messageLevel.Warning)
 else
- logMsg("Unknown Reason", messageLevel.Warning)
+ logMsg("Unknown Reason.", messageLevel.Alert)
 end
  sleep(0.1)
  logMsg("Unloading users..", messageLevel.Info)
  sleep(0.2)
  logMsg("Users unloaded.", messageLevel.Success)
  sleep(0.1)
- logMsg("Server stopped.", messageLevel.Warning)
+ logMsg("Server stopped.", messageLevel.Alert)
  Running_Status = "Not Running"
  Log_Running_Status = "Not Running"
  offline = 1 
@@ -832,81 +1090,93 @@ function printUsers(offset)
 
     -- Layout --
 
-
-
-    term.setBackgroundColor(colors.white)
-    term.clear()
-    term.setCursorPos(1,1)
-    term.setBackgroundColor(colors.gray)
-    term.clearLine()
-    term.setCursorPos(1,2)
-    term.clearLine()
-    term.setCursorPos(1,3)
-    term.clearLine()
-    term.setCursorPos(1,4)
-    term.setBackgroundColor(colors.lightGray)
-    term.clearLine()
-    term.setCursorPos(1,5)
-    term.clearLine()
-    term.setCursorPos(1,6)
-    term.clearLine()
-    term.setCursorPos(2,2)
-    term.setBackgroundColor(colors.gray)
-    term.setTextColor(colors.white)
-    term.write(Running_Status)
-
-    -- Buttons --
-
-    term.setBackgroundColor(colors.cyan)
-    term.setTextColor(colors.white)
-    term.setCursorPos(21,2)
-    term.write(" Lock ")
-    term.setTextColor(colors.gray)
-    term.setBackgroundColor(colors.white)
-    term.setCursorPos(28,2)
-    term.write(" Log ")
-    term.setCursorPos(34,2)
-    term.setBackgroundColor(colors.blue)
-    term.setTextColor(colors.white)
-    write(" Accounts ")
-    term.setTextColor(colors.gray)
-    term.setBackgroundColor(colors.white)
-    term.setCursorPos(45,2)
-    write(" Quit ")
-    term.setTextColor(colors.black)
-    term.setCursorPos(2,5)
-    write(" Add ")
-    term.setCursorPos(8,5)
-    write(" Edit ")
-    term.setCursorPos(15,5)
-    term.setBackgroundColor(colors.red)
-    term.setTextColor(colors.white)
-    write(" Delete ")
-    term.setCursorPos(24,5)
-    term.setBackgroundColor(colors.white)
-    term.setTextColor(colors.black)
-    write(" Backup ")
-    term.setTextColor(colors.white)
-    term.setBackgroundColor(colors.lightGray)
-    term.setCursorPos(38,5)
-if offline == 0 then
-   if #Users > 0 then
-    write(table.getn(Users).." Account(s).")
-   else
-   	write("0 Account(s).")
-   end
+if crUser then
+ currentUsers = displayUsers
 else
- write("0 Account(s).") 
+ currentUsers = Users
+end
+  term.setBackgroundColor(colors.white)
+  term.clear()
+ for i = 1,6 do
+  if i <= 3 then
+   term.setCursorPos(1,i)
+   term.setBackgroundColor(colors.gray)
+   term.clearLine()
+  else
+   term.setCursorPos(1,i)
+   term.setBackgroundColor(colors.lightGray)
+   term.clearLine()    
+  end
+ end
+
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.white)
+  term.write(Running_Status)
+-- Buttons --
+  term.setBackgroundColor(colors.cyan)
+  term.setTextColor(colors.white)
+  term.setCursorPos(21,2)
+  term.write(" Lock ")
+  term.setTextColor(colors.gray)
+  term.setBackgroundColor(colors.white)
+  term.setCursorPos(28,2)
+  term.write(" Log ")
+  term.setCursorPos(34,2)
+  term.setBackgroundColor(colors.blue)
+  term.setTextColor(colors.white)
+  write(" Accounts ")
+  term.setTextColor(colors.gray)
+  term.setBackgroundColor(colors.white)
+  term.setCursorPos(45,2)
+  write(" Quit ")
+  term.setTextColor(colors.black)
+  term.setCursorPos(2,5)
+  write(" Add ")
+  term.setCursorPos(8,5)
+  write(" Edit ")
+  term.setCursorPos(15,5)
+  term.setBackgroundColor(colors.red)
+  term.setTextColor(colors.white)
+  write(" Delete ")
+  term.setCursorPos(24,5)
+  term.setBackgroundColor(colors.white)
+  term.setTextColor(colors.black)
+  write(" Backup ")
+if offline == 0 then
+   if #currentUsers > 0  and search == false then
+    term.setCursorPos(33,5)
+    term.setBackgroundColor(colors.white)
+    term.setTextColor(colors.black)
+    write(" Search.. ")
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.lightGray)
+   elseif search then
+    term.setCursorPos(33,5)
+    term.setBackgroundColor(colors.white)
+    write(string.rep(" ", 16))
+    term.setTextColor(colors.gray)
+    term.setCursorPos(33,5)
+    write(string.gsub(table.concat(searchBox,""),"space"," "))
+    term.setCursorPos(searchPos,5)
+   end
 end
 
     term.setBackgroundColor(colors.white)
     term.setTextColor(colors.black)
-
+        term.setCursorPos(2,7)
+        term.setTextColor(colors.lightGray)
+        print("Name")
+        term.setCursorPos(18,7)
+        print("Account Number")
+        term.setCursorPos(40,7)
+        print("Password")
 if offline == 0 then
 
 
+
     ln = 7
-    if #Users > 0 then
+    if #currentUsers > 0 then
         term.setCursorPos(2,7)
         term.setTextColor(colors.lightGray)
         print("Name")
@@ -916,7 +1186,7 @@ if offline == 0 then
         print("Password")
 
         for i = offset, offset + 12 do
-            if i > #Users then break end
+            if i > #currentUsers then break end
 
             if selectedRow and i == selectedRow then
                 term.setBackgroundColor(colors.blue)
@@ -929,25 +1199,17 @@ if offline == 0 then
             term.setTextColor(colors.black)
             term.setCursorPos(2,ln+1)
 
-            term.write(Users[i][1])
+            term.write(currentUsers[i]["name"])
             term.setCursorPos(18,ln+1)
-            term.write(tostring(Users[i][3]):gsub("%.0", ""))
+            term.write(tostring(currentUsers[i]["accountNumber"]):gsub("%.0", ""))
             term.setCursorPos(40,ln+1)
-            term.write(string.gsub(tostring(Users[i][2]), "[^()]", "*"))
+            term.write(string.gsub(tostring(currentUsers[i]["password"]), "[^()]", "*"))
 
             ln = ln + 1
+
           end        
         end
-    else
-        term.setCursorPos(2,7)
-        term.setTextColor(colors.lightGray)
-        print("Name")
-        term.setCursorPos(18,7)
-        print("Account Number")
-        term.setCursorPos(40,7)
-        print("Password")
     end
-
   if first_start == "yes" then
     f = fs.open("first_start","w")
     f.write("no")
@@ -963,6 +1225,13 @@ end
 
 selected = false
 
+function edit_user(username, id, password)
+
+Users[id]["password"] = password
+startTime = 0
+
+end
+
 function userClicks()
 user = nil
 userID = nil
@@ -971,7 +1240,9 @@ userP = nil
     while true do
      local event, button, xPos, yPos = os.pullEvent("mouse_click")
        if event == "mouse_click" then
+        startTime = 1
         if currentView == "accounts" or currentView == "offline" then
+         if button == 1 then
          if xPos >= 2 and xPos <= 6 and yPos == 5 then
            term.setCursorPos(2,5)
            term.setBackgroundColor(colors.blue)
@@ -986,51 +1257,65 @@ userP = nil
            printMsg("Adding a user.")
            term.setBackgroundColor(colors.lightGray)
            term.setTextColor(colors.white)
-           term.setCursorPos(17,10)
+           term.setCursorPos(10,10)
            term.write("Password: ")           
-           term.setCursorPos(17,8)
+           term.setCursorPos(10,8)
            term.write("Username: ")
            userN = read()
-           term.setCursorPos(17,10)
+           term.setCursorPos(10,10)
            term.write("Password: ")
            userP = read("*")
-           addUser(userN,userP)
-           sleep(0.2)
-           logMsg("Created account of user: "..userN, messageLevel.Success)
-           selectedRow = nil
-           selectedAccount = nil
-           saveTable()
-           printUsers(currentOffset)           
+           if addUser(userN,userP) then
+            logMsg("Created account of user: "..userN, messageLevel.Success)
+            selectedRow = nil
+            selectedAccount = nil
+            saveTable()
+            printUsers(currentOffset)
+           else
+            logMsg("Failed creating account of user: '"..userN.."'", messageLevel.Warning)
+            selectedRow = nil
+            selectedAccount = nil
+            saveTable()
+            printUsers(currentOffset)
+           end                       
           end
          elseif xPos >= 8 and xPos <= 13 and yPos == 5 then
            term.setCursorPos(8,5)
            term.setTextColor(colors.lightGray)
            term.setBackgroundColor(colors.blue)
            term.write(" Edit ")
-           sleep(0.2)
+           sleep(0.1)
            term.setCursorPos(8,5)
            term.setBackgroundColor(colors.white)
            term.setTextColor(colors.black)           
            term.write(" Edit ")
        if offline == 0 then          
           if selectedAccount then
-          	user = selectedAccount[1]
-          	userID = selectedAccount[3]
-          	userPass = selectedAccount[2]
+          	user = selectedAccount["name"]
+          	userID = selectedAccount["accountNumber"]
+          	userPass = selectedAccount["password"]
             printMsg("Changing "..user.."'s account.")
             term.setBackgroundColor(colors.lightGray)
             term.setTextColor(colors.white)
-            term.setCursorPos(17,8)
+            term.setCursorPos(10,8)
             term.write("New Password: ")                	
           	term.setBackgroundColor(colors.lightGray)
           	password = read("*")
 
           	hashedPass = sha256(password)
 
-			      Users[selectedRow] = {user,hashedPass,userID}
+            edit_user(user, userID, hashedPass)
+
             logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
             saveTable()
-            printUsers(currentOffset)
+            crUser = false
+            selected = false
+            selectedAccount = nil
+            selectedRow = nil
+            enterPressed = false
+            search = false
+            currentUsers = Users
+            printUsers(currentOffset)        
           end
         end
          elseif xPos >= 15 and xPos <= 22 and yPos == 5 then
@@ -1038,15 +1323,15 @@ userP = nil
            term.setBackgroundColor(colors.white)
            term.setTextColor(colors.red)
            term.write(" Delete ")
-           sleep(0.2)
+           sleep(0.1)
            term.setCursorPos(15,5)
            term.setBackgroundColor(colors.red)
            term.setTextColor(colors.white)
            term.write(" Delete ")
           if selectedAccount then
-          	user = selectedAccount[1]
-          	userID = selectedAccount[3]
-          	userPass = selectedAccount[2]
+            user = selectedAccount["name"]
+            userID = selectedAccount["accountNumber"]
+            userPass = selectedAccount["password"]
           	table.remove(Users,selectedRow)
           	logMsg("Deleted account of user: "..user, messageLevel.Warning)
            if selectedRow == 1 then
@@ -1056,6 +1341,10 @@ userP = nil
             selectedAccount = Users[selectedRow] 
             saveTable()
             printUsers(currentOffset)
+            enterPressed = false
+            search = false
+            currentUsers = Users
+            printUsers(currentOffset)            
           end 
          elseif xPos >= 28 and xPos <= 32 and yPos == 2 then
            term.setCursorPos(28,2)
@@ -1063,7 +1352,20 @@ userP = nil
            term.setTextColor(colors.white)
            term.write(" Log ")
            sleep(0.1)
-		   currentView = "log"
+          if Console then
+		       currentView = "log"
+          else
+           printMsg("Console.")
+           term.setCursorPos(9,8)
+           term.setBackgroundColor(colors.lightGray)
+           write("Console is disabled in this version")
+           term.setCursorPos(13,10)
+           write("Press any key to continue")
+           event, key = os.pullEvent("key")
+           if event == "key" then
+            return
+           end
+          end
           break
          elseif xPos >= 24 and xPos <= 32 and yPos == 5 then
           if offline == 0 then  
@@ -1071,7 +1373,7 @@ userP = nil
            term.setBackgroundColor(colors.blue)
            term.write(" Backup ")
            saveTable()
-           sleep(0.5)
+           sleep(0.2)
            term.setCursorPos(24,5)
            term.setBackgroundColor(colors.lightGray)
            write("        ")
@@ -1091,6 +1393,143 @@ userP = nil
           sleep(0.2)
           printUsers(currentOffset)
         end
+         elseif xPos >= 33 and xPos <= 42 and yPos == 5 then
+          if #Users > 0 then       
+        function simpleClick()
+        while true do
+         event, button, x, y = os.pullEvent("mouse_click")
+         if xPos >= 33 and xPos <= 42 and yPos == 5 then
+          search = true
+          crUser = true
+          -- enterPressed = false
+         else
+          search = false
+          crUser = false
+         end
+        end
+        end
+        function Search()
+          while search do
+           local event, p1 = os.pullEvent("key")
+           alphabet = "abcdefghijklmnopqrstuvwxyz"
+           ckey = keys.getName(p1)
+           if event == "key" then
+              if ckey == "enter" then
+               if table.getn(searchBox) > 0 then
+                search = false
+                enterPressed = true
+                currentUsers = displayUsers
+                parallel.waitForAny(userClicks, userScrolls, userPress, simpleClick)
+                -- write(string.gsub(table.concat(searchBox,""),"space"," "))
+                return
+               else
+                currentUsers = Users
+                search = false
+                enterPressed = false
+                printUsers(currentOffset)
+               return
+             end
+              elseif ckey == "escape" then
+              elseif ckey == "leftAlt" then
+              elseif ckey == "space" then
+               if table.getn(searchBox) <= 12 then
+                searchPos = searchPos + 1
+                term.setCursorPos(searchPos,5)
+                table.insert(searchBox, " ")
+               end                
+              elseif ckey == "backspace" then
+               if searchPos >= 34 then
+                table.remove(searchBox, #searchBox)
+                searchPos = searchPos - 1
+                term.setBackgroundColor(colors.white)
+                term.setTextColor(colors.white)
+                term.setCursorPos(searchPos,5)
+                write(" ")
+                term.setTextColor(colors.gray)
+               end
+              elseif ckey ~= "leftShift" then
+               if ckey ~= "delete" then
+                term.setBackgroundColor(colors.white)
+                term.setTextColor(colors.gray)
+                 if table.getn(searchBox) <= 15 then
+                  term.setCursorPos(searchPos,5)
+
+                  searchPos = searchPos + 1
+
+                if ckey == nil then
+                else
+                  if string.find(alphabet,ckey) ~= nil then
+                    table.insert(searchBox,ckey)
+                    write(ckey)
+                  end
+                 end
+
+                 end
+                end
+              end
+             if #searchBox == 0 then
+              crUser = false
+              printUsers(currentOffset)
+              Search()
+             else
+
+              name = string.gsub(table.concat(searchBox,""),"space"," "):upper()
+               for i = 7,19 do
+                term.setCursorPos(1,i)
+                term.setBackgroundColor(colors.white)
+                term.clearLine()
+                currentUsers = Users
+               end
+                m = false
+                displayUsers = {}
+                for k,v in pairs(Users) do
+                 cName = v["name"]
+                 cPass = v["password"]
+                 cAcc = v["accountNumber"]
+                 if cName:upper():find(name:upper()) then
+                  m = true
+
+                  displayUsers[#displayUsers+1] = {["name"] = cName,["password"] = cPass,["accountNumber"] = cAcc}
+
+
+                  crUser = true
+                  printUsers(currentOffset)
+                  ln = ln + 1
+                 end
+                end 
+
+
+                 if m == false then
+                  term.setBackgroundColor(colors.white)
+                  term.setTextColor(colors.gray)
+                  term.setCursorPos(1,7)
+                  term.clearLine()                   
+                  centerPrint("No results",7)                
+                 m = false
+                end
+             end
+           end
+          end
+         end
+         if searchPos > 0 and enterPressed == true then
+            search = true
+            Search()
+            parallel.waitForAny(userClicks, userScrolls, userPress, simpleClick)
+           else
+             search = true
+             term.setCursorPos(33,5)
+             term.setBackgroundColor(colors.blue)
+             term.write(" Search.. ")
+             sleep(0.5)
+             term.setCursorPos(33,5)
+             term.setBackgroundColor(colors.white)
+             write("                ")
+             term.setCursorPos(33,5)
+             term.setTextColor(colors.gray)
+             Search()
+             parallel.waitForAny(userClicks, userScrolls, userPress, simpleClick)
+            end
+         end
          elseif xPos >= 21 and xPos <= 26 and yPos == 2 then
            currentView = "lock"
           break
@@ -1102,9 +1541,18 @@ userP = nil
                 selectedRow = nil
                 selectedAccount = nil
                 printUsers(currentOffset)
+             if enterPressed then
+              term.setCursorPos(33,5)
+              term.setBackgroundColor(colors.white)
+              write(string.rep(" ", 16))
+              term.setTextColor(colors.gray)
+              term.setCursorPos(33,5)
+              write(string.gsub(table.concat(searchBox,""),"space"," "))
+              term.setCursorPos(searchPos,5)
+             end
             else
                 selectedRow = currentOffset + yPos - 8
-                selectedAccount = Users[selectedRow]
+                selectedAccount = currentUsers[selectedRow]
                if selectedAccount == nil then
                 selectedRow = nil
                 selectedAccount = nil
@@ -1115,14 +1563,135 @@ userP = nil
                 term.write("                                       ")
                 term.setTextColor(colors.black)
                 term.setCursorPos(2,yPos)
-                term.write(selectedAccount[1])
+                term.write(selectedAccount["name"])
                 term.setCursorPos(18,yPos)
-                term.write(tostring(selectedAccount[3]):gsub("%.0", ""))
+                term.write(tostring(selectedAccount["accountNumber"]):gsub("%.0", ""))
                 term.setCursorPos(40,yPos)
-                term.write(string.gsub(tostring(selectedAccount[2]), "[^()]", "*"))
+                term.write(string.gsub(tostring(selectedAccount["password"]), "[^()]", "*"))
               end
             end
           end
+        elseif button == 2 then
+         if yPos >= 8 and yPos <= 16 then
+            if selectedRow and not(selectedRow == currentOffset + yPos - 8) then
+                selectedRow = nil
+                selectedAccount = nil
+                printUsers(currentOffset)
+            else
+                selectedRow = currentOffset + yPos - 8
+                selectedAccount = currentUsers[selectedRow]
+               if selectedAccount == nil then
+                selectedRow = nil
+                selectedAccount = nil
+               else
+
+                term.setCursorPos(2,yPos)
+                term.setBackgroundColor(colors.blue)
+                term.write("                                       ")
+                term.setTextColor(colors.black)
+                term.setCursorPos(2,yPos)
+                term.write(selectedAccount["name"])
+                term.setCursorPos(18,yPos)
+                term.write(tostring(selectedAccount["accountNumber"]):gsub("%.0", ""))
+                term.setCursorPos(40,yPos)
+                term.write(string.gsub(tostring(selectedAccount["password"]), "[^()]", "*"))
+              end
+            end
+      
+                x,y = term.getCursorPos()
+
+                term.setCursorPos(2,y+1)
+                term.setBackgroundColor(colors.lightGray)
+                term.setTextColor(colors.white)
+                write(" Edit      ")
+                term.setCursorPos(2,y+2)
+                write(" Delete    ")
+                term.setCursorPos(2,y+3)
+                write(" Add value ")
+                event, btnn, xx, yy = os.pullEvent("mouse_click")
+                if event == "mouse_click" then
+                 if btnn == 1 then
+                              if xx >= 2 and xx <= 12 and yy == y+1 then
+                               if selectedAccount then
+                                  user = selectedAccount["name"]
+                                  userID = selectedAccount["accountNumber"]
+                                  userPass = selectedAccount["password"]
+                                  printMsg("Changing "..user.."'s account.")
+                                  term.setBackgroundColor(colors.lightGray)
+                                  term.setTextColor(colors.white)
+                                  term.setCursorPos(10,8)
+                                  term.write("New Password: ")                  
+                                  term.setBackgroundColor(colors.lightGray)
+                                  password = read("*")
+
+                                  hashedPass = sha256(password)
+
+                                  edit_user(user, userID, hashedPass)
+
+                                  logMsg("Changed account of user: '"..user.."'", messageLevel.Success)            
+                                  saveTable()
+                                  crUser = false
+                                  selected = false
+                                  selectedAccount = nil
+                                  selectedRow = nil
+                                  enterPressed = false
+                                  search = false
+                                  currentUsers = Users
+                                  printUsers(currentOffset)        
+                                end
+                              elseif xx >= 2 and xx <= 12 and yy == y+2 then 
+                                if selectedAccount then
+                                  user = selectedAccount["name"]
+                                  userID = selectedAccount["accountNumber"]
+                                  userPass = selectedAccount["password"]
+                                  table.remove(Users,selectedRow)
+                                  logMsg("Deleted account of user: "..user, messageLevel.Warning)
+                                 if selectedRow == 1 then
+                                 else
+                                   selectedRow = selectedRow - 1           
+                                 end
+                                  selectedAccount = Users[selectedRow] 
+                                  saveTable()
+                                  printUsers(currentOffset)
+                                  enterPressed = false
+                                  search = false
+                                  currentUsers = Users
+                                  printUsers(currentOffset)            
+                                end 
+                              elseif xx >= 2 and xx <= 12 and yy == y+3 then
+                              function values()
+                               printMsg("Adding a Value.")
+                               term.setBackgroundColor(colors.lightGray)
+                               term.setCursorPos(10,8)
+                               write("New value name: ")
+                               term.setCursorPos(10,10)
+                               write("Value: ")
+                               term.setCursorPos(26,8)
+                               valueName = read()
+                               term.setCursorPos(17,10)
+                               value = read()
+                               if addValue(selectedAccount["accountNumber"],valueName,value) then
+                                term.setCursorPos(10,12)
+                                write("Success")
+                                sleep(1)
+                                printUsers(currentOffset)
+                               else
+                                term.setCursorPos(10, 12)
+                                write("Failed")
+                                sleep(1)
+                                values()
+                               end
+                              end
+                               values()
+                              else
+                               printUsers(currentOffset)
+                              end
+                            end
+                          end
+                        else
+                         printUsers(currentOffset)
+                        end
+            end
       elseif currentView == "modemCheck" then
         if xPos >= 45 and xPos <= 50 and yPos == 18 then
           term.setBackgroundColor(colors.white)
@@ -1144,13 +1713,14 @@ userP = nil
 end
 
 function userPress()
-
+if crUser then
+else
 while true do
   local evt, s = os.pullEvent("key") -- wait for a key press
-
+startTime = 1
   s = tonumber(s)
 
-  if s == 211 then
+  if s == 211 and search == false then
            term.setCursorPos(15,5)
            term.setBackgroundColor(colors.white)
            term.setTextColor(colors.red)
@@ -1161,9 +1731,9 @@ while true do
            term.setTextColor(colors.white)
            term.write(" Delete ")
           if selectedAccount then
-          	user = selectedAccount[1]
-          	userID = selectedAccount[3]
-          	userPass = selectedAccount[2]
+            user = selectedAccount["name"]
+            userID = selectedAccount["accountNumber"]
+            userPass = selectedAccount["password"]
           	table.remove(Users,selectedRow)
           	logMsg("Deleted account of user: "..user, messageLevel.Info)
            if selectedRow == 1 then
@@ -1174,48 +1744,26 @@ while true do
             saveTable()
           	printUsers(currentOffset)
           end 
-   elseif s == 56 then
-   	 currentView = "lock"
+   elseif s == 56 and search == false then
+   	currentView = "lock"
    	return
-   elseif s == 200 then
-   if selectedRow then
-    if selectedRow == 1 then
-    else
-     selectedRow = selectedRow - 1
-     selectedAccount = Users[selectedRow]
-     printUsers(currentOffset)
-    end
-   end
-   elseif s == 208 then
-   if selectedRow then
-    if selectedRow == table.getn(Users) then
-    else
-     selectedRow = selectedRow + 1
-     selectedAccount = Users[selectedRow]
-     printUsers(currentOffset)
-     end   	
-    end
-   elseif s == 41 then
-   	if #Users > 0 then
-   	 selectedRow = 1
-   	 selectedAccount = Users[selectedRow]
-   	 printUsers(currentOffset)
-    end
+
+
+  end
  end
 end
-
-
 end
 
 function userScrolls()
     while true do
         event, amount = os.pullEvent()
         if event == "mouse_scroll" then
+          startTime = 1
             local lastOffset = currentOffset
             if currentOffset + amount <= 1 then
                 currentOffset = 1
-            elseif (amount + currentOffset + 11 >= #Users) then
-                currentOffset = #Users - 11
+            elseif (amount + currentOffset + 11 >= #currentUsers) then
+                currentOffset = #currentUsers - 11
                 if currentOffset <= 1 then
                   currentOffset = 1
                 end
@@ -1233,14 +1781,17 @@ Updater()
 
 
 while true do
- if currentView == "accounts" then
+ if currentView == "search" then
+  search = true
+  parallel.waitForAny(userClicks,receiveMessages, autoLock)
+ elseif currentView == "accounts" then
   printUsers(currentOffset)
-  parallel.waitForAny(userScrolls, userClicks, userPress,receiveMessages)
+  parallel.waitForAny(userScrolls, userClicks, userPress,receiveMessages, autoLock, unbanUsers)
  elseif currentView == "offline" then
    parallel.waitForAll(userClicks)   
  elseif currentView == "log" then
   logview.printLogs(logCurrentOffset)
-  parallel.waitForAny(logview.userScrolls, logview.userClicks, logview.userPress, receiveMessages)
+  parallel.waitForAny(logview.userScrolls, logview.userClicks, autoLock, logview.userPress, receiveMessages)
  elseif currentView == "modemCheck" then
   function Sp()
   while true do
@@ -1273,11 +1824,16 @@ end
   term.setBackgroundColor(colors.black)
   term.clear()
   term.setCursorPos(1,1)
+  logFile = fs.open(".LatestLogFile","w")
+  logFile.write(textutils.serialize(allLogs))
+  logFile.close()
+
   term.setTextColor(colors.white)
   f = fs.open("first_start","w")
   f.write("yes")
   f.close()
   saveTable()
+  saveBanned()
   print("Thankyou, for using jasper's Database.")
   sleep(0.5)
   return
@@ -1290,15 +1846,77 @@ end
    startServer()
   end
   function Lock()
-	 term.setBackgroundColor(colors.white)
+	 term.setBackgroundColor(colors.gray)
    term.setTextColor(colors.cyan)
    term.setCursorPos(21,2)
    term.write(" Lock ")
    term.clear()
-   term.setCursorPos(16,10)
-   term.write("Unlock password: ")
+local lockArt = [[
+  ####
+ #    #
+ #    #
+########
+--------
+########
+########
+ 
+[LOCKED]
+]]
+   
+    local w, h = term.getSize()
+    local lockX = math.ceil((w/2) - 4)
+    local lineNum = 4
+    for line in lockArt:gmatch("[^\n]+") do
+      term.setCursorPos(lockX, lineNum)
+      term.write(line)
+      lineNum = lineNum + 1
+    end
+    term.setBackgroundColor(colors.red)
+    term.setCursorPos(1,1)
+    term.clearLine()
+    term.setTextColor(colors.white)
+    term.setCursorPos(2,1)
+    write("Status: "..Running_Status)
+    term.setBackgroundColor(colors.gray)
+    term.setTextColor(colors.cyan)
+    term.setCursorPos(1,19)
+    term.write("Password: ")
     pass = read("*")
     if sha256(tostring(pass)) == unlockPass then
+   term.setBackgroundColor(colors.gray)
+   term.setTextColor(colors.cyan)
+   term.setCursorPos(21,2)
+   term.write(" Lock ")
+   term.clear()
+local lockArt = [[
+   ####
+  #    #
+  #    #
+ ########
+ --------
+ ########
+ ########
+ 
+[UNLOCKED]
+]]
+   
+    local w, h = term.getSize()
+    local lockX = math.ceil((w/2) - 4)
+    local lineNum = 4
+    for line in lockArt:gmatch("[^\n]+") do
+      term.setCursorPos(lockX, lineNum)
+      term.write(line)
+      lineNum = lineNum + 1
+    end
+     term.setBackgroundColor(colors.red)
+     term.setCursorPos(1,1)
+     term.clearLine()
+     term.setTextColor(colors.white)
+     term.setCursorPos(2,1)
+     write("Status: "..Running_Status)
+     term.setBackgroundColor(colors.gray)
+     term.setTextColor(colors.cyan)
+     sleep(1)
      logMsg("Console unlocked.")
 	   fs.delete("Locked")
      Lock = false
@@ -1310,7 +1928,6 @@ end
       printUsers(currentOffset)
      end
     else
-     logMsg("Someone tried wrong password.", messageLevel.Warning)
      Lock()
     end
    end
