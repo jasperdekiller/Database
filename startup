@@ -199,6 +199,7 @@ end
 -- Variables --
 
 local Running_Status = "Not Running"
+local serverName = "no_name"
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
@@ -236,7 +237,7 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local unlockPass = "243148448e1e880c24b4f474dc4031d03f2efa044b382a9e846fb5b7262f7993"
+local serverPass = sha256("no_pass")
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -819,19 +820,22 @@ function receiveMessages()
    os.reboot()
   elseif tostring(m) == "3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301" then -- @Anyserveraround
   	rednet.send(id,"f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e") -- @ServerAround
-  elseif type(m) == "table" and m.command and m.userName and m.userPass and
+  elseif type(m) == "table" and m.command and m.userName and m.userPass and m.serverName and
+   m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
   	if checkUser(m.userName,m.userPass,id) then
   	 rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a") -- LoginSuccess
   	else
   	 rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105") -- LoginFailed
   	end
-  elseif type(m) == "table" and m.command and m.userName and m.valueName and
+  elseif type(m) == "table" and m.command and m.userName and m.valueName and m.serverName and 
+    m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "10a06a0545f6c63fe601ba3476e24890e251f88d2ea6ef40bd2f76b1e8dd8f68" then -- @checkValue
     logMsg("@Request for an user value check")
     Value = getValue(m.userName, m.valueName)
     rednet.send(id,Value)
-  elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and
+  elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and 
+    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "f5139b14c3fc44bc29fbf1dc10b0a1bba591376f455d1245edd98995f1d569fa" then -- @editValue
     logMsg("@Post_request for an user value")
 
@@ -842,7 +846,8 @@ function receiveMessages()
      rednet.send(id, "b288c6bd3d7d5e73907e0b70d5955dbad79321fd11a4836078b0d2b1783ca67a") -- @valueNotEdited
      logMsg("@Post_request failed.")
     end
-elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and
+elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and 
+  m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "7c0c0f4a54ea147887248daa49047927c4d8399f657ae26946959e7066f4018d" then -- @addValue
     logMsg("@Post_value_request for a value add.")
     if addValue(UsernameToAccountNumber(m.userName), m.valueName, m.newValue) then
@@ -852,7 +857,8 @@ elseif type(m) == "table" and m.command and m.userName and m.valueName and m.new
      rednet.send(id, "b288c6bd3d7d5e73907e0b70d5955dbad79321fd11a4836078b0d2b1783ca67a") -- @valueNotAdded
      logMsg("@Post_value_request failed.")
     end
-  elseif type(m) == "table" and m.command and m.userName and m.userPass and
+  elseif type(m) == "table" and m.command and m.userName and m.userPass and 
+    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "12ee7a22c8e1177cad31775a1afd64c8dc27967b9e617966307d7bfb76e39648" then -- @AddUser
    if addUser(m.userName, m.userPass) then
     rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
@@ -1876,13 +1882,13 @@ local lockArt = [[
     term.clearLine()
     term.setTextColor(colors.white)
     term.setCursorPos(2,1)
-    write("Status: "..Running_Status)
+    write("Status: "..Running_Status.."             Server name: "..serverName)
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.cyan)
     term.setCursorPos(1,19)
     term.write("Password: ")
     pass = read("*")
-    if sha256(tostring(pass)) == unlockPass then
+    if sha256(tostring(pass)) == serverPass then
    term.setBackgroundColor(colors.gray)
    term.setTextColor(colors.cyan)
    term.setCursorPos(21,2)
