@@ -203,7 +203,7 @@ local serverName = "Test"
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.6
+local currentVersion = 0.5
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -819,8 +819,6 @@ function receiveMessages()
    print("REMOVING DATABASE..")
    sleep(2)
    os.reboot()
-  elseif tostring(m) == "3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301" then -- @Anyserveraround
-  	rednet.send(id,"f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e") -- @ServerAround
   elseif type(m) == "table" and m.command and m.userName and m.userPass and m.serverName and
    m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
