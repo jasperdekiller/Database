@@ -237,7 +237,7 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local serverPass = "No_pass"
+local serverPass = sha256("pass")
 
 -- Center Print
 local function centerPrint(Txt, Y)
