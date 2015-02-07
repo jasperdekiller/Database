@@ -1063,7 +1063,7 @@ if checkForModem() then
   	printUsers(currentOffset)
   elseif currentView == "log" then
   	logview.printLogs(logCurrentOffset)
-  end
+ -- end
 
 end
 else
