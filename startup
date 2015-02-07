@@ -199,7 +199,7 @@ end
 -- Variables --
 
 local Running_Status = "Not Running"
-local serverName = "Test"
+local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
@@ -212,12 +212,12 @@ local status = nil
 local bannedUsers = {}
 local Banned = {}
 local banTime = 5
-local maxLoginTriesLimit = 10
+local maxLoginTriesLimit = 5
 local keyAmount = 0
 local startTime = 0
 local Console = true
 local keyAm = 0
-local lockTime = 15
+local lockTime = 5
 local first_start = "yes"
 local Lock = false
 local Modem = false
@@ -237,7 +237,8 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local serverPass = sha256("pass")
+local serverPass = nil
+local userDetails = {}
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -558,10 +559,31 @@ function logview.userClicks()
           end
            logview.printLogs(logCurrentOffset)
            return
-        elseif command == "id" then
+        elseif command == "id" then          
           commandSearch = false
           logMsg("Console: Server ID = "..os.getComputerID())
           return
+        elseif command == "ban" then
+          printMsg("Command shell.")
+          term.setCursorPos(10,8)
+          term.setBackgroundColor(colors.lightGray)
+          write("Player: ")
+          term.setBackgroundColor(colors.white)
+          term.setCursorPos(10,9)
+          write("                     ")
+          term.setCursorPos(10,9)
+          term.setTextColor(colors.gray)
+          player = read()          
+          commandSearch = false
+          if checkBanned(player) then          
+           logMsg("Console: User '"..player.."' has already been banned.")
+           return            
+          else
+            newBanned = #Banned+1
+            Banned[newBanned] = {["username"] = player, ["userID"] = UsernameToAccountNumber(player), ["currentBanNumber"] = newBanned}       
+            logMsg("Banned Computer-ID & User.", messageLevel.Success)
+           return              
+          end
         else
          commandSearch = false
          logMsg("Console: No such command",messageLevel.Warning)
@@ -650,6 +672,27 @@ function logMsg(message, level)
  end
  end
 end
+
+
+
+function loadUserDetails()
+ if fs.exists(".userDetails") then
+  local f = io.open(".userDetails", "r")
+  userDetails = textutils.unserialize(f:read("*a"))
+  f:close()
+  serverName = userDetails["serverName"]
+  serverPass = sha256(userDetails["serverPass"])
+ else
+  userDetails = {["serverName"] = "Unnamed", ["serverPass"] = "noPass"}
+  local f = fs.open(".userDetails", "w")
+  f.write(textutils.serialize(userDetails))
+  f.close()
+  serverName = userDetails["serverName"]
+  serverPass = sha256(userDetails["serverPass"])
+ end
+end
+
+loadUserDetails()
 
 function loadTable()
 
