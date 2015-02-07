@@ -1906,6 +1906,43 @@ local lockArt = [[
 [UNLOCKED]
 ]]
    
+   local w, h = term.getSize()
+    local lockX = math.ceil((w/2) - 4)
+    local lineNum = 4
+    for line in lockArt:gmatch("[^\n]+") do
+      term.setCursorPos(lockX, lineNum)
+      term.write(line)
+      lineNum = lineNum + 1
+    end
+    term.setBackgroundColor(colors.red)
+    term.setCursorPos(1,1)
+    term.clearLine()
+    term.setTextColor(colors.white)
+    term.setCursorPos(2,1)
+    write("Server name: "..serverName)
+    term.setBackgroundColor(colors.gray)
+    term.setTextColor(colors.cyan)
+    term.setCursorPos(1,19)
+    term.write("Password: ")
+    pass = read("*")
+    if sha256(tostring(pass)) == serverPass then
+   term.setBackgroundColor(colors.gray)
+   term.setTextColor(colors.cyan)
+   term.setCursorPos(21,2)
+   term.write(" Lock ")
+   term.clear()
+local lockArt = [[
+   ####
+  #    #
+  #    #
+ ########
+ --------
+ ########
+ ########
+ 
+[UNLOCKED]
+]]
+   
     local w, h = term.getSize()
     local lockX = math.ceil((w/2) - 4)
     local lineNum = 4
@@ -1919,7 +1956,7 @@ local lockArt = [[
      term.clearLine()
      term.setTextColor(colors.white)
      term.setCursorPos(2,1)
-     write("Status: "..Running_Status.."             Server name: "..serverName)
+     write("Server name: "..serverName)
      term.setBackgroundColor(colors.gray)
      term.setTextColor(colors.cyan)
      sleep(0.4)
