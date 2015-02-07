@@ -199,12 +199,12 @@ end
 -- Variables --
 
 local Running_Status = "Not Running"
-local serverName = "Test"
+local serverName = "no_name" -- Your name
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.5
-local updater = false
+local currentVersion = 0.6
+local updater = true
 local currentOffset = 1
 local selectedRow = nil
 local selectedAccount = nil
@@ -237,7 +237,7 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local serverPass = "243148448e1e880c24b4f474dc4031d03f2efa044b382a9e846fb5b7262f7993"
+local serverPass = sha256("no_pass")
 
 -- Center Print
 local function centerPrint(Txt, Y)
