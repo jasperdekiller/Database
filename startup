@@ -199,7 +199,7 @@ end
 -- Variables --
 
 local Running_Status = "Not Running"
-local serverName = "no_name" -- Your name
+local serverName = "No_Name" -- Your Server Name
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
@@ -237,7 +237,7 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local serverPass = sha256("no_pass")
+local serverPass = sha256("No_Pass") -- Your Server Password
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -1882,43 +1882,6 @@ local lockArt = [[
     term.clearLine()
     term.setTextColor(colors.white)
     term.setCursorPos(2,1)
-    write("Status: "..Running_Status.."             Server name: "..serverName)
-    term.setBackgroundColor(colors.gray)
-    term.setTextColor(colors.cyan)
-    term.setCursorPos(1,19)
-    term.write("Password: ")
-    pass = read("*")
-    if sha256(tostring(pass)) == serverPass then
-   term.setBackgroundColor(colors.gray)
-   term.setTextColor(colors.cyan)
-   term.setCursorPos(21,2)
-   term.write(" Lock ")
-   term.clear()
-local lockArt = [[
-   ####
-  #    #
-  #    #
- ########
- --------
- ########
- ########
- 
-[UNLOCKED]
-]]
-   
-   local w, h = term.getSize()
-    local lockX = math.ceil((w/2) - 4)
-    local lineNum = 4
-    for line in lockArt:gmatch("[^\n]+") do
-      term.setCursorPos(lockX, lineNum)
-      term.write(line)
-      lineNum = lineNum + 1
-    end
-    term.setBackgroundColor(colors.red)
-    term.setCursorPos(1,1)
-    term.clearLine()
-    term.setTextColor(colors.white)
-    term.setCursorPos(2,1)
     write("Server name: "..serverName)
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.cyan)
@@ -1975,5 +1938,4 @@ local lockArt = [[
    end
      parallel.waitForAny(receiveMessages, Lock) 
  end
-end
 end
