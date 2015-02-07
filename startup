@@ -1880,7 +1880,7 @@ local lockArt = [[
     term.clearLine()
     term.setTextColor(colors.white)
     term.setCursorPos(2,1)
-    write("Server name: "..serverName)
+    write("Server name: "..serverName.."    ID: "..os.getComputerID())
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.cyan)
     term.setCursorPos(1,19)
