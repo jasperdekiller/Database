@@ -1036,21 +1036,21 @@ function startServer()
   end
 
 if checkForModem() then
-  logMsg("Checking for other servers..")
+--  logMsg("Checking for other servers..")
 
 
-  rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
+--  rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
 
  -- More servers around check --
 
- m = nil
+ --m = nil
 
- id, m = rednet.receive(0.2)
+ -- id, m = rednet.receive(0.2)
 
- if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
-  stopServer("AlreadyServerRunning")
-else
-  logMsg("No other servers were found.", messageLevel.Success)
+ -- if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
+  -- stopServer("AlreadyServerRunning")
+-- else
+  -- logMsg("No other servers were found.", messageLevel.Success)
   logMsg("Starting server..", messageLevel.Info)
   logMsg("Server started!", messageLevel.Success)
   term.setCursorPos(2,2)
