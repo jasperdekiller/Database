@@ -199,11 +199,11 @@ end
 -- Variables --
 
 local Running_Status = "Not Running"
-local serverName = "No_Name" -- Your Server Name
+local serverName = "Test"
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.5
+local currentVersion = 0.6
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -237,7 +237,7 @@ local currentView = "accounts"
 local logCurrentOffset = 1
 local search = false
 local commandSearch = false
-local serverPass = sha256("No_Pass") -- Your Server Password
+local serverPass = "No_pass"
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -685,7 +685,18 @@ function checkBanned(username,ID)
   return false
 end
 
-function checkUser(userName,userPass,ID)
+function UsernameToAccountNumber(userName)
+ if userName then
+  for k,v in pairs(Users) do
+   if v["name"] == userName then
+    return Users[k]["accountNumber"]
+   end
+  end
+ end
+end
+
+function checkUser(userName,userPass)
+ ID = UsernameToAccountNumber(userName)
  if checkBanned(userName, ID) == false then
    if checkUserAndPass(userName, userPass, ID) then
     return true
@@ -761,16 +772,6 @@ function addValue(userID, valueName, value)
  end
 end
 
-function UsernameToAccountNumber(userName)
- if userName then
-  for k,v in pairs(Users) do
-   if v["name"] == userName then
-    return Users[k]["accountNumber"]
-   end
-  end
- end
-end
-
 function editValue(userName, valueName, newValue)
  if getValue(userName, valueName) ~= false then
   Users[UsernameToAccountNumber(userName)][tostring(valueName)] = newValue
@@ -823,7 +824,7 @@ function receiveMessages()
   elseif type(m) == "table" and m.command and m.userName and m.userPass and m.serverName and
    m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
-  	if checkUser(m.userName,m.userPass,id) then
+  	if checkUser(m.userName,m.userPass) then
   	 rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a") -- LoginSuccess
   	else
   	 rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105") -- LoginFailed
@@ -1036,21 +1037,21 @@ function startServer()
   end
 
 if checkForModem() then
---  logMsg("Checking for other servers..")
+--   logMsg("Checking for other servers..")
 
 
---  rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
+--   rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
 
- -- More servers around check --
+--  -- More servers around check --
 
- --m = nil
+--  m = nil
 
- -- id, m = rednet.receive(0.2)
+--  id, m = rednet.receive(0.2)
 
- -- if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
-  -- stopServer("AlreadyServerRunning")
+--  if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
+--   stopServer("AlreadyServerRunning")
 -- else
-  -- logMsg("No other servers were found.", messageLevel.Success)
+--   logMsg("No other servers were found.", messageLevel.Success)
   logMsg("Starting server..", messageLevel.Info)
   logMsg("Server started!", messageLevel.Success)
   term.setCursorPos(2,2)
@@ -1063,9 +1064,8 @@ if checkForModem() then
   	printUsers(currentOffset)
   elseif currentView == "log" then
   	logview.printLogs(logCurrentOffset)
- -- end
+  end
 
-end
 else
   stopServer("noModem")
   currentView = "modemCheck"
