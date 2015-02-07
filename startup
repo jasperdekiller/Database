@@ -485,6 +485,8 @@ function logview.userClicks()
     	term.write(" Clear   ")
       term.setCursorPos(18,4)
       term.write(" Command ")
+      term.setCursorPos(18,5)
+      term.write(" Update  ")
       event, btn, x, y = os.pullEvent("mouse_click")
       if event == "mouse_click" then
        if x >= 18 and x <= 26 and y == 3 then
@@ -493,6 +495,28 @@ function logview.userClicks()
       	log[#log+1]	= {"Cleared console.","Success"}
         logCurrentOffset = 1
       	logview.printLogs(logCurrentOffset)
+       elseif x >= 18 and x <= 26 and y == 5 then
+        local download = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/Version") 
+         local handle = download.readAll() 
+         download.close() 
+
+         f = fs.open("version","r")
+         oldVersion = f.readLine()
+         f.close()
+
+         if oldVersion == handle then
+         else
+          file = fs.open("version","w")
+          file.write(handle)
+          f.close()
+          local downloadU = http.get("https://raw.githubusercontent.com/jasperdekiller/Database/master/startup")
+          local handleU = downloadU.readAll()
+          downloadU.close()
+          file = fs.open("startup","w")
+          file.write(handleU)
+          file.close()
+         end
+         logMsg("Server updated.",messageLevel.Success)     
        elseif x >= 18 and x <= 26 and y == 4 then
        function commandView()
           commandSearch = true
@@ -534,6 +558,10 @@ function logview.userClicks()
           end
            logview.printLogs(logCurrentOffset)
            return
+        elseif command == "id" then
+          commandSearch = false
+          logMsg("Console: Server ID = "..os.getComputerID())
+          return
         else
          commandSearch = false
          logMsg("Console: No such command",messageLevel.Warning)
