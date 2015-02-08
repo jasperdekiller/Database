@@ -203,7 +203,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.7
+local currentVersion = 0.8
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -890,17 +890,15 @@ function receiveMessages()
    sleep(2)
    os.reboot()
   elseif type(m) == "table" and m.command and m.serverName and
-   m.serverPass and m.serverName == serverName and m.serverPass and
+   m.serverPass and m.serverName and m.serverPass and
    m.command == "80300323865075642310b08e08b2f465bb5af20c6f822c53566ee84a3a707a22" then
-   if m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" then
+   if m.serverName == serverName and m.serverPass == serverPass then
     rednet.send(id,"c88a0b907419a70c27ab7c1f8e5fb54441a4d9c3567e4c928fa7b2091194aecf")
    else
     rednet.send(id,"c6b9eb830ede3ad1c53ba20f245c116c81690b91a2ef4b12486f4fdaa1306b0e")
    end
   elseif type(m) == "table" and m.command and m.userName and m.userPass and m.serverName and
-   m.serverPass and m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" and
+   m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
   	if checkUser(m.userName,m.userPass) then
   	 rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a") -- LoginSuccess
@@ -908,15 +906,13 @@ function receiveMessages()
   	 rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105") -- LoginFailed
   	end
   elseif type(m) == "table" and m.command and m.userName and m.valueName and m.serverName and 
-    m.serverPass and m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" and
+    m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "10a06a0545f6c63fe601ba3476e24890e251f88d2ea6ef40bd2f76b1e8dd8f68" then -- @checkValue
     logMsg("@Request for an user value check")
     Value = getValue(m.userName, m.valueName)
     rednet.send(id,Value)
   elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and 
-    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" and
+    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "f5139b14c3fc44bc29fbf1dc10b0a1bba591376f455d1245edd98995f1d569fa" then -- @editValue
     logMsg("@Post_request for an user value")
 
@@ -928,8 +924,7 @@ function receiveMessages()
      logMsg("@Post_request failed.")
     end
 elseif type(m) == "table" and m.command and m.userName and m.valueName and m.newValue and 
-  m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" and
+  m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
     m.command == "7c0c0f4a54ea147887248daa49047927c4d8399f657ae26946959e7066f4018d" then -- @addValue
     logMsg("@Post_value_request for a value add.")
     if addValue(UsernameToAccountNumber(m.userName), m.valueName, m.newValue) then
@@ -940,8 +935,7 @@ elseif type(m) == "table" and m.command and m.userName and m.valueName and m.new
      logMsg("@Post_value_request failed.")
     end
   elseif type(m) == "table" and m.command and m.userName and m.userPass and 
-    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass or 
-    m.serverPass == "01dc9267340e1957c70b9de7d26c4e1b99dcde3052b6550093930dbde584828d" and
+    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "12ee7a22c8e1177cad31775a1afd64c8dc27967b9e617966307d7bfb76e39648" then -- @AddUser
    if addUser(m.userName, m.userPass) then
     rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
