@@ -1,5 +1,6 @@
--- This program was made by Jasperdekiller.
--- Dont edit or steal any code. Dont own the Credits.
+-- This work is licensed under the Creative Commons Attribution-NoDerivatives 4.0 
+-- International License. To view a copy of this license, visit 
+-- http://creativecommons.org/licenses/by-nd/4.0/.
 
 os.pullEvent = os.pullEventRaw
 
@@ -203,7 +204,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.8
+local currentVersion = 0.6
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -379,7 +380,7 @@ for i = offset, offset + 16 do
    term.setTextColor(colors.lightGray)
    x, y = term.getCursorPos()
    term.setCursorPos(x,y)
-   write(log[i][1])
+   term.write(log[i][1])
 
    xP, lineNumber = term.getCursorPos()
 
@@ -391,7 +392,7 @@ for i = offset, offset + 16 do
    term.setTextColor(colors.lightGray)
    x, y = term.getCursorPos()
    term.setCursorPos(x,y)
-   write(log[i][1])
+   term.write(log[i][1])
 
    xP, lineNumber = term.getCursorPos()
 
@@ -403,7 +404,7 @@ for i = offset, offset + 16 do
    term.setTextColor(colors.lightGray)
    x, y = term.getCursorPos()
    term.setCursorPos(x,y)
-   write(log[i][1])
+   term.write(log[i][1])
 
    xP, lineNumber = term.getCursorPos()
 
@@ -415,7 +416,7 @@ for i = offset, offset + 16 do
    term.setTextColor(colors.lightGray)
    x, y = term.getCursorPos()
    term.setCursorPos(x,y)
-   write(log[i][1])
+   term.write(log[i][1])
 
    xP, lineNumber = term.getCursorPos()
 
@@ -427,7 +428,7 @@ for i = offset, offset + 16 do
    term.setTextColor(colors.lightGray)
    x, y = term.getCursorPos()
    term.setCursorPos(x,y)
-   write(log[i][1])
+   term.write(log[i][1])
 
    xP, lineNumber = term.getCursorPos()
 
@@ -852,6 +853,16 @@ function editValue(userName, valueName, newValue)
   return false
 end
 
+function edit_user(username, id, password)
+  if username and id and password then
+   Users[id]["password"] = password
+   startTime = 0
+   return true
+  else
+   return false
+  end
+end
+
 function addUser(name, password)
 
  if #Users > 0 then
@@ -875,6 +886,124 @@ function addUser(name, password)
     return true
 end
 
+
+function checkForModem()
+  for _, v in pairs(rs.getSides()) do
+     if peripheral.getType(v) == "modem" then 
+      rednet.open(v)
+      return true   
+     end
+    end
+  offline = 1
+  return false
+end
+
+function stopServer(reason)
+if reason == "AlreadyServerRunning" then
+ logMsg("There is another server already running.", messageLevel.Warning)
+elseif reason == "UserStopped" then
+ logMsg("Stopping the server.", messageLevel.Alert)
+elseif reason == "noModem" then
+ logMsg("There is no modem attached.", messageLevel.Warning)
+else
+ logMsg("Unknown Reason.", messageLevel.Alert)
+end
+ sleep(0.1)
+ logMsg("Unloading users..", messageLevel.Info)
+ sleep(0.2)
+ logMsg("Users unloaded.", messageLevel.Success)
+ sleep(0.1)
+ logMsg("Server stopped.", messageLevel.Alert)
+ Running_Status = "Not Running"
+ Log_Running_Status = "Not Running"
+ offline = 1
+if currentView == "accounts" then
+ printUsers(currentOffset)
+ currentView = "offline" 
+elseif currentView == "log" then
+ logview.printLogs(logCurrentOffset)
+ currentView = "log"
+end
+end
+
+
+function startServer()
+ serverStarted = true
+ if Lock == false then
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  write("                ")
+
+  Running_Status = "Starting up.."
+  Log_Running_Status = "Starting up.."
+
+
+
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.white)
+  term.write(Running_Status)
+ end
+
+  if #Users > 0 then
+   logMsg("Loading accounts.", messageLevel.Info)
+   logMsg("Loaded all accounts.", messageLevel.Success)
+  else
+   logMsg("Loading accounts.", messageLevel.Info)
+   logMsg("No users found.", messageLevel.Warning)
+  end
+
+if checkForModem() then
+--   logMsg("Checking for other servers..")
+
+
+--   rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
+
+--  -- More servers around check --
+
+--  m = nil
+
+--  id, m = rednet.receive(0.2)
+
+--  if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
+--   stopServer("AlreadyServerRunning")
+-- else
+--   logMsg("No other servers were found.", messageLevel.Success)
+  logMsg("Starting server..", messageLevel.Info)
+  logMsg("Server started!", messageLevel.Success)
+  term.setCursorPos(2,2)
+  term.setBackgroundColor(colors.gray)
+  write("                ")
+
+  Running_Status = "Running v"..tostring(currentVersion)
+  Log_Running_Status = "Running"
+  if currentView == "accounts" then
+    printUsers(currentOffset)
+  elseif currentView == "log" then
+    logview.printLogs(logCurrentOffset)
+  end
+
+else
+  stopServer("noModem")
+  currentView = "modemCheck"
+  term.setBackgroundColor(colors.white)
+  term.clear()
+  term.setCursorPos(17,8)
+  term.setTextColor(colors.red)
+  term.write("No modem Attached!")
+  term.setTextColor(colors.black)
+  term.setCursorPos(7,10)
+  term.write("Please attach a wireless modem to use")
+  term.setCursorPos(17,11)
+  term.write("Jasper's Database.")
+  term.setCursorPos(45,18)
+  term.setBackgroundColor(colors.red)
+  term.setTextColor(colors.white)
+  term.write(" Quit ")
+  term.setBackgroundColor(colors.white)
+ end
+end
+
 function receiveMessages()
  while true do
   id, m = rednet.receive()
@@ -888,15 +1017,29 @@ function receiveMessages()
    term.setCursorPos(1,1)
    print("REMOVING DATABASE..")
    sleep(2)
-   os.reboot()
+   os.reboot() 
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.serverName and m.serverPass and
+   m.command == "d6c93fcefa4a934e316e00183a474fc75183dc57b30c9c7c405cb744bccf88ff" then -- @getAmountUsers
+   if m.serverName == serverName and m.serverPass == serverPass then
+    userinnumber = #Users
+    rednet.send(id,userinnumber)
+   else
+    rednet.send(id,false)
+   end
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.serverName and m.serverPass and
    m.command == "80300323865075642310b08e08b2f465bb5af20c6f822c53566ee84a3a707a22" then
    if m.serverName == serverName and m.serverPass == serverPass then
-    rednet.send(id,"c88a0b907419a70c27ab7c1f8e5fb54441a4d9c3567e4c928fa7b2091194aecf")
+    rednet.send(id,"c88a0b907419a70c27ab7c1f8e5fb54441a4d9c3567e4c928fa7b2091194aecf") -- @getConnection
    else
     rednet.send(id,"c6b9eb830ede3ad1c53ba20f245c116c81690b91a2ef4b12486f4fdaa1306b0e")
    end
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
+   m.command == "8187c8d6540776b50bfb7715dff6940f64990ffa632bd1eb21988756b9adc758" then -- @stopServer
+   stopServer("Stopped by Client. ID: "..tostring(id))
+   rednet.send(id,true) 
   elseif type(m) == "table" and m.command and m.userName and m.userPass and m.serverName and
    m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "0ecebd384a0e7e72c7a334adc35194742fedd97acbeb9fe90dd8c4feb63a4b88" then -- @checkUser
@@ -934,6 +1077,16 @@ elseif type(m) == "table" and m.command and m.userName and m.valueName and m.new
      rednet.send(id, "b288c6bd3d7d5e73907e0b70d5955dbad79321fd11a4836078b0d2b1783ca67a") -- @valueNotAdded
      logMsg("@Post_value_request failed.")
     end
+  elseif type(m) == "table" and m.command and m.userName and m.userPass and 
+    m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
+    m.command == "b36b8550382c84846e41dfb47cf2da4e2feae06367cd90c4e5333acc7beff435" then -- @editUser
+    if edit_user(m.userName,UsernameToAccountNumber(m.userName),m.userPass) then
+     rednet.send(id, "534483e8172cde9776af44b0a6202c60caedde7bef53ab894a1e507d88bf83bd") -- Succes.
+     logMsg("Edited account of user: '"..m.userName.."'", messageLevel.Success)
+    else
+     rednet.send(id, "031a8f0f659df890dfd53c92e45295b0f14c997185bae46e168831e403b273f7") -- Failed.
+     logMsg("Failed editing account of user: '"..m.userName.."'", messageLevel.Warning)
+    end    
   elseif type(m) == "table" and m.command and m.userName and m.userPass and 
     m.serverName and m.serverPass and m.serverName == serverName and m.serverPass == serverPass and
    m.command == "12ee7a22c8e1177cad31775a1afd64c8dc27967b9e617966307d7bfb76e39648" then -- @AddUser
@@ -1046,122 +1199,7 @@ end
   file.write(currentVersion)
   file.close()
 
-function checkForModem()
-  for _, v in pairs(rs.getSides()) do
-     if peripheral.getType(v) == "modem" then 
-      rednet.open(v)
-      return true   
-     end
-    end
-  offline = 1
-  return false
-end
 
-function stopServer(reason)
-if reason == "AlreadyServerRunning" then
- logMsg("There is another server already running.", messageLevel.Warning)
-elseif reason == "UserStopped" then
- logMsg("Stopping the server.", messageLevel.Alert)
-elseif reason == "noModem" then
- logMsg("There is no modem attached.", messageLevel.Warning)
-else
- logMsg("Unknown Reason.", messageLevel.Alert)
-end
- sleep(0.1)
- logMsg("Unloading users..", messageLevel.Info)
- sleep(0.2)
- logMsg("Users unloaded.", messageLevel.Success)
- sleep(0.1)
- logMsg("Server stopped.", messageLevel.Alert)
- Running_Status = "Not Running"
- Log_Running_Status = "Not Running"
- offline = 1 
-if currentView == "accounts" then
- printUsers(currentOffset)
- currentView = "offline" 
-elseif currentView == "log" then
- logview.printLogs(logCurrentOffset)
- currentView = "log"
-end
-end
-
-
-function startServer()
- serverStarted = true
- if Lock == false then
-  term.setCursorPos(2,2)
-  term.setBackgroundColor(colors.gray)
-  write("                ")
-
-  Running_Status = "Starting up.."
-  Log_Running_Status = "Starting up.."
-
-
-
-  term.setCursorPos(2,2)
-  term.setBackgroundColor(colors.gray)
-  term.setTextColor(colors.white)
-  term.write(Running_Status)
- end
-
-  if #Users > 0 then
-   logMsg("Loading accounts.", messageLevel.Info)
-   logMsg("Loaded all accounts.", messageLevel.Success)
-  else
-   logMsg("Loading accounts.", messageLevel.Info)
-   logMsg("No users found.", messageLevel.Warning)
-  end
-
-if checkForModem() then
---   logMsg("Checking for other servers..")
-
-
---   rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
-
---  -- More servers around check --
-
---  m = nil
-
---  id, m = rednet.receive(0.2)
-
---  if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
---   stopServer("AlreadyServerRunning")
--- else
---   logMsg("No other servers were found.", messageLevel.Success)
-  logMsg("Starting server..", messageLevel.Info)
-  logMsg("Server started!", messageLevel.Success)
-  term.setCursorPos(2,2)
-  term.setBackgroundColor(colors.gray)
-  write("                ")
-
-  Running_Status = "Running v"..tostring(currentVersion)
-  Log_Running_Status = "Running"
-  if currentView == "accounts" then
-  	printUsers(currentOffset)
-  elseif currentView == "log" then
-  	logview.printLogs(logCurrentOffset)
-  end
-
-else
-  stopServer("noModem")
-  currentView = "modemCheck"
-  term.setBackgroundColor(colors.white)
-  term.clear()
-  term.setCursorPos(17,8)
-  term.setTextColor(colors.red)
-  term.write("No modem Attached!")
-  term.setTextColor(colors.black)
-  term.setCursorPos(7,10)
-  term.write("Please attach a wireless modem to use")
-  term.setCursorPos(17,11)
-  term.write("Jasper's Database.")
-  term.setCursorPos(45,18)
-  term.setBackgroundColor(colors.red)
-  term.setTextColor(colors.white)
-  term.write(" Quit ")
-  term.setBackgroundColor(colors.white)
- end
-end
 
 -- Add user function --
 
@@ -1307,12 +1345,7 @@ end
 
 selected = false
 
-function edit_user(username, id, password)
 
-Users[id]["password"] = password
-startTime = 0
-
-end
 
 function userClicks()
 user = nil
