@@ -204,7 +204,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.6
+local currentVersion = 0.7
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -683,6 +683,7 @@ function loadUserDetails()
   f:close()
   serverName = userDetails["serverName"]
   serverPass = sha256(userDetails["serverPass"])
+  local unlockPass = userDetails["serverPass"]
  else
   userDetails = {["serverName"] = "Unnamed", ["serverPass"] = "noPass"}
   local f = fs.open(".userDetails", "w")
@@ -853,37 +854,51 @@ function editValue(userName, valueName, newValue)
   return false
 end
 
+function removeUser(username)
+ for k,v in pairs(Users) do
+   if v["name"] == username then
+    table.remove(Users,k)
+    logMsg("Deleted account of user: "..username, messageLevel.Warning)
+    saveTable()
+    startTime = 0
+    return true
+   end
+ end
+ return false
+end
+
 function edit_user(username, id, password)
-  if username and id and password then
-   Users[id]["password"] = password
-   startTime = 0
-   return true
-  else
-   return false
-  end
+ if username and id and password then
+    for k,v in pairs(Users) do
+      if v["name"] == username then
+       Users[tonumber(id)]["password"] = password
+       startTime = 0
+       return true
+      end
+    end
+  return false
+ else
+  return false  
+ end
 end
 
 function addUser(name, password)
-
  if #Users > 0 then
  else
   current_acc_number = 0
  end
-
-
-
  for k,v in pairs(Users) do
   if v["name"] == name then
    return false
   end
  end
-    current_acc_number = current_acc_number + 1
-    Users[#Users+1] = {["name"] = name, ["password"] = sha256(password),["accountNumber"] = current_acc_number}
-    file = fs.open("CurrentID", "w")
-    file.write(tostring(current_acc_number))
-    file.close()
-    saveTable()
-    return true
+  current_acc_number = current_acc_number + 1
+  Users[#Users+1] = {["name"] = name, ["password"] = sha256(password),["accountNumber"] = current_acc_number}
+  file = fs.open("CurrentID", "w")
+  file.write(tostring(current_acc_number))
+  file.close()
+  saveTable()
+  return true
 end
 
 
@@ -1018,6 +1033,47 @@ function receiveMessages()
    print("REMOVING DATABASE..")
    sleep(2)
    os.reboot() 
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.serverName and m.serverPass and m.userName and
+   m.command == "aeaba2a77aa52c65127f74e2591ca9ff33288a40d6f4952a6ef32d5f8f91da29" then -- @removeUser
+   if m.serverName == serverName and m.serverPass == serverPass then
+    if removeUser(m.userName) then
+     rednet.send(id,"7bdb175ff0d84b61043ed83d8e152cd42537428e77e5370d430782c8304f779a")
+    else
+     rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105")
+    end
+   else
+    rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105")
+   end    
+  elseif m == "de22b7ee45476d1cc81e8a91212904f4edfc087c5cde58062a694ff610641c87" then -- @unlockCheck
+    rednet.send(id,unlockPass)
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.command == "411544b9db93b3d9be6277b11bbd32ee62fb814a3c12946bdfa7c1c5ef7c51d4" then -- @getLogs
+   if m.serverName == serverName and m.serverPass == serverPass and #log >= 0 then
+    rednet.send(id,log)
+    logMsg("Logs exported to ID: "..id,messageLevel.Warning)
+   else
+    rednet.send(id,false)
+   end      
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.command == "da7bab656e6ae8564f42c5ccb6f866ef64e15f19d7234a83b9a664544c80b036" then -- @getUsers
+   if m.serverName == serverName and m.serverPass == serverPass and #Users >= 0 then
+    rednet.send(id,Users)
+    logMsg("Users exported to ID: "..id,messageLevel.Warning)
+   else
+    rednet.send(id,false)
+   end  
+  elseif m == "b6d471b4daa830f731d2c1d40421cb2ed605662188429579de5ea8ba69bc87d4" then -- @getID
+    return os.getComputerID()
+  elseif type(m) == "table" and m.command and m.serverName and
+   m.serverPass and m.serverName and m.serverPass and m.logMsg and
+   m.command == "e0930f1147b2e76d2ee85e28fa48b8b838c6c4991850b292b29c8df53e73cc51" then -- @printLog
+   if m.serverName == serverName and m.serverPass == serverPass then
+    logMsg(m.logMsg)
+    rednet.send(id,true)
+   else
+    rednet.send(id,false)
+   end  
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.serverName and m.serverPass and
    m.command == "d6c93fcefa4a934e316e00183a474fc75183dc57b30c9c7c405cb744bccf88ff" then -- @getAmountUsers
