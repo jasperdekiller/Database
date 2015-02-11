@@ -204,7 +204,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.7
+local currentVersion = 0.6
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -1033,6 +1033,8 @@ function receiveMessages()
    print("REMOVING DATABASE..")
    sleep(2)
    os.reboot() 
+  elseif m == "a7d9f55f6c6cc80d78ccb639e29fef890a3c4b28a539428004f82e2c69368ef4" then
+   rednet.send(id,"55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec")
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.serverName and m.serverPass and m.userName and
    m.command == "aeaba2a77aa52c65127f74e2591ca9ff33288a40d6f4952a6ef32d5f8f91da29" then -- @removeUser
