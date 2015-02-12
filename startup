@@ -204,7 +204,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.6
+local currentVersion = 0.7
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -240,6 +240,7 @@ local search = false
 local commandSearch = false
 local serverPass = nil
 local userDetails = {}
+local unlockPass = nil
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -683,7 +684,7 @@ function loadUserDetails()
   f:close()
   serverName = userDetails["serverName"]
   serverPass = sha256(userDetails["serverPass"])
-  local unlockPass = userDetails["serverPass"]
+  unlockPass = userDetails["serverPass"]
  else
   userDetails = {["serverName"] = "Unnamed", ["serverPass"] = "noPass"}
   local f = fs.open(".userDetails", "w")
@@ -720,6 +721,7 @@ while not Lock do
   sleep(1) 
  until startTime == autoLockTime
   currentView = "lock"
+  startTime = 0
   printUsers(currentOffset)
   return
 end
@@ -1032,9 +1034,16 @@ function receiveMessages()
    term.setCursorPos(1,1)
    print("REMOVING DATABASE..")
    sleep(2)
-   os.reboot() 
+   os.reboot()
   elseif m == "a7d9f55f6c6cc80d78ccb639e29fef890a3c4b28a539428004f82e2c69368ef4" then
-   rednet.send(id,"55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec")
+  done = false
+  repeat
+   oid, ms = rednet.receive(1)
+   if ms ~= "55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec" then
+    rednet.send(id,"55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec")
+    done = true
+   end
+  until done == true
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.serverName and m.serverPass and m.userName and
    m.command == "aeaba2a77aa52c65127f74e2591ca9ff33288a40d6f4952a6ef32d5f8f91da29" then -- @removeUser
@@ -1048,7 +1057,14 @@ function receiveMessages()
     rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105")
    end    
   elseif m == "de22b7ee45476d1cc81e8a91212904f4edfc087c5cde58062a694ff610641c87" then -- @unlockCheck
+  done = false
+  repeat
+   oid, ms = rednet.receive(1)
+   if ms ~= "55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec" then
     rednet.send(id,unlockPass)
+    done = true
+   end
+   until done == true
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.command == "411544b9db93b3d9be6277b11bbd32ee62fb814a3c12946bdfa7c1c5ef7c51d4" then -- @getLogs
    if m.serverName == serverName and m.serverPass == serverPass and #log >= 0 then
@@ -1064,9 +1080,11 @@ function receiveMessages()
     logMsg("Users exported to ID: "..id,messageLevel.Warning)
    else
     rednet.send(id,false)
-   end  
+   end
+  elseif m == "200e1f75a8b33f7fa19becac9e81c2668dc50b999e643c0a0e5934de328bee8e" then
+   rednet.send(id,serverName)
   elseif m == "b6d471b4daa830f731d2c1d40421cb2ed605662188429579de5ea8ba69bc87d4" then -- @getID
-    return os.getComputerID()
+    rednet.send(id,os.getComputerID())
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.serverName and m.serverPass and m.logMsg and
    m.command == "e0930f1147b2e76d2ee85e28fa48b8b838c6c4991850b292b29c8df53e73cc51" then -- @printLog
