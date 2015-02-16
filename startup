@@ -204,7 +204,7 @@ local serverName = nil
 local Log_Running_Status = "Not Running"
 local current_acc_number = 0
 local offline = 0
-local currentVersion = 0.8
+local currentVersion = 0.9
 local updater = true
 local currentOffset = 1
 local selectedRow = nil
@@ -240,7 +240,9 @@ local search = false
 local commandSearch = false
 local serverPass = nil
 local userDetails = {}
-local unlockPass = nil
+local Domain = nil
+local ConnectedToDomain = false
+local domainID = nil
 
 -- Center Print
 local function centerPrint(Txt, Y)
@@ -684,18 +686,73 @@ function loadUserDetails()
   f:close()
   serverName = userDetails["serverName"]
   serverPass = sha256(userDetails["serverPass"])
-  unlockPass = userDetails["serverPass"]
+  Domain = userDetails["domainName"]
+  domainID = userDetails["domainID"]
  else
-  userDetails = {["serverName"] = "Unnamed", ["serverPass"] = "noPass"}
+  userDetails = {["serverName"] = "Unnamed", ["serverPass"] = "noPass", ["domainName"] = nil, ["domainID"] = nil}
   local f = fs.open(".userDetails", "w")
   f.write(textutils.serialize(userDetails))
   f.close()
   serverName = userDetails["serverName"]
   serverPass = sha256(userDetails["serverPass"])
+  Domain = userDetails["domainName"]
+  DomainID = userDetails["domainID"]
  end
 end
 
-loadUserDetails()
+function saveDomain()
+ userDetails["domainName"] = Domain
+ userDetails["domainID"] = domainID
+ local f = fs.open(".userDetails", "w")
+ f.write(textutils.serialize(userDetails))
+ f.close()
+end
+
+function checkForModem()
+  for _, v in pairs(rs.getSides()) do
+     if peripheral.getType(v) == "modem" then 
+      rednet.open(v)
+      return true   
+     end
+    end
+  offline = 1
+  return false
+end
+
+if checkForModem() then
+else
+ currentView = "modemCheck"
+end
+
+function connectToDomain()
+  rednet.send(tonumber(domainID), "@connectTest")
+  id, m = rednet.receive(1)
+  if id == tonumber(domainID) then
+   if m == "@connectionMade" then
+    return true
+   end
+     return false
+  end
+  return false
+end
+
+function loadAndConnectDomain()
+ loadUserDetails()
+ if Domain ~= nil and domainID ~= nil then
+  if connectToDomain() then
+   ConnectedToDomain = true
+   currentView = "accounts"
+  else
+   ConnectedToDomain = false
+   currentView = "domainOffline"
+  end
+ else
+  ConnectedToDomain = false
+  currentView = "notConnected"
+ end
+end
+
+loadAndConnectDomain()
 
 function loadTable()
 
@@ -904,16 +961,7 @@ function addUser(name, password)
 end
 
 
-function checkForModem()
-  for _, v in pairs(rs.getSides()) do
-     if peripheral.getType(v) == "modem" then 
-      rednet.open(v)
-      return true   
-     end
-    end
-  offline = 1
-  return false
-end
+
 
 function stopServer(reason)
 if reason == "AlreadyServerRunning" then
@@ -971,21 +1019,10 @@ function startServer()
   end
 
 if checkForModem() then
---   logMsg("Checking for other servers..")
-
-
---   rednet.broadcast("3080cc0e8266f08fac1803b17f6dd64f0c9352538f7e97cb0d9c836134efe301")
-
---  -- More servers around check --
-
---  m = nil
-
---  id, m = rednet.receive(0.2)
-
---  if m == "f73ddd9d96aaf3173c7a3aa0eebe3a67dc5691358a25d9f90c78704f1c15b85e" then
---   stopServer("AlreadyServerRunning")
--- else
---   logMsg("No other servers were found.", messageLevel.Success)
+  logMsg("Checking for domain: "..Domain, messageLevel.Info)
+  sleep(0.4)
+ if ConnectedToDomain then
+  logMsg("Connected and running on Domain.", messageLevel.Success)
   logMsg("Starting server..", messageLevel.Info)
   logMsg("Server started!", messageLevel.Success)
   term.setCursorPos(2,2)
@@ -998,8 +1035,11 @@ if checkForModem() then
     printUsers(currentOffset)
   elseif currentView == "log" then
     logview.printLogs(logCurrentOffset)
-  end
-
+  end  
+ else
+  logMsg("Failed connecting to Domain.", messageLevel.Alert)
+  currentView = "domainOffline"
+ end
 else
   stopServer("noModem")
   currentView = "modemCheck"
@@ -1056,15 +1096,6 @@ function receiveMessages()
    else
     rednet.send(id,"9272e450568fdea51e0f90a40ecbb8d0ea1c7eb5b4fdb0e9bb7a59633b7ea105")
    end    
-  elseif m == "de22b7ee45476d1cc81e8a91212904f4edfc087c5cde58062a694ff610641c87" then -- @unlockCheck
-  done = false
-  repeat
-   oid, ms = rednet.receive(1)
-   if ms ~= "55081d1832f467b9e4501714cf1fce2861954b0f539a2272fc97de9bac0835ec" then
-    rednet.send(id,unlockPass)
-    done = true
-   end
-   until done == true
   elseif type(m) == "table" and m.command and m.serverName and
    m.serverPass and m.command == "411544b9db93b3d9be6277b11bbd32ee62fb814a3c12946bdfa7c1c5ef7c51d4" then -- @getLogs
    if m.serverName == serverName and m.serverPass == serverPass and #log >= 0 then
@@ -1248,7 +1279,7 @@ if fs.exists(".BannedList") then
   f:close()
 end
 
-if fs.exists("Locked") then
+if fs.exists("Locked") and ConnectedToDomain then
  currentView = "lock"
 end
 
@@ -2028,6 +2059,71 @@ end
   print("Thankyou, for using jasper's Database.")
   sleep(0.5)
   return
+ elseif currentView == "domainOffline" then
+  term.setBackgroundColor(colors.gray)
+  term.clear()
+  term.setBackgroundColor(colors.red)
+  term.setCursorPos(1,1)
+  term.clearLine()
+  term.setTextColor(colors.white)
+  centerPrint("Domain is offline!",1)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.cyan)
+  centerPrint("Dear user,",4)
+  centerPrint("There is no connection between you",6)
+  centerPrint("and the Domain Host Company.",7)
+  centerPrint("Ask your Host to check the servers.",8)
+  term.setTextColor(colors.white)
+  centerPrint("Waiting for connection..",19)
+  repeat
+   if connectToDomain() then
+    ConnectedToDomain = true
+   end
+  until ConnectedToDomain == true
+    currentView = "accounts"
+ elseif currentView == "notConnected" then
+  term.setBackgroundColor(colors.gray)
+  term.clear()
+  term.setBackgroundColor(colors.red)
+  term.setCursorPos(1,1)
+  term.clearLine()
+  term.setTextColor(colors.white)
+  centerPrint("Server is not connected with a Domain!",1)
+  term.setBackgroundColor(colors.gray)
+  term.setTextColor(colors.cyan)
+  centerPrint("Dear user,",4)
+  centerPrint("Your server is not connected to a ",6)
+  centerPrint("Domain yet. Follow the next few steps to",7)
+  centerPrint("fix this issue, make use of the Database.",8)
+  centerPrint("Ask around for a Domain Host Company and",9)
+  centerPrint("register a domain for your server. Only thing",10)
+  centerPrint("you need to give the Domain Host Company is the",11)
+  centerPrint("following things: Your Server ID ("..os.getComputerID()..") and",12)
+  centerPrint("your domain name what you wan't for ",13)
+  centerPrint("your Database! After you registered your",14)
+  centerPrint("Database will work.",15)
+  term.setTextColor(colors.white)
+  centerPrint("  Waiting for Domain..",19)
+  repeat
+   id, message = rednet.receive()
+   if message == "@newDomain" then
+    id, msg = rednet.receive()
+    if tonumber(msg) == os.getComputerID() then
+     rednet.send(id, "@giveMeNewDomain")
+     id, answer = rednet.receive()
+     Domain = tostring(answer)
+     domainID = tonumber(id)
+     saveDomain()
+     rednet.send(id,"@Success")
+     sleep(1)
+    if connectToDomain() then
+     ConnectedToDomain = true
+    end
+    end
+   end
+  until ConnectedToDomain == true
+    saveDomain()
+    currentView = "accounts"
  elseif currentView == "lock" then
    Lock = true
    f = fs.open("Locked","w")
